@@ -179,8 +179,8 @@ if ($has_filter && isset($_GET['export']) && (int)$_GET['export'] === 1) {
     <div class="container">
         <div class="header-bar">
             <h2>📊 Rekap Nilai Siswa</h2>
-            <div>
-                <a href="../dashboard.php" class="btn btn-secondary"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali ke Dashboard</a>
+                <div>
+                <a href="../dashboard.php" class="btn btn-secondary back-btn" onclick="var href=this.getAttribute('href'); document.body.style.transition='opacity .22s'; document.body.style.opacity=0; setTimeout(function(){ if (history.length>1) { history.back(); } else { window.location=href; } },220); return false;"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali ke Dashboard</a>
                 <?php if ($has_filter && empty($error)) : ?>
                     <a class="btn btn-outline" href="?tahun_ajaran_id=<?php echo $tahun_ajaran_id; ?>&semester=<?php echo urlencode($semester); ?>&assignment_id=<?php echo $assignment_id; ?>&export=1">⬇️ Export CSV</a>
                     <button class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print" aria-hidden="true"></i> Cetak</button>

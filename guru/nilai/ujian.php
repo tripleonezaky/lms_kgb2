@@ -109,8 +109,8 @@ $flash = get_flash();
 <div class="container">
     <div class="header">
         <h2><i class="fas fa-file-alt" aria-hidden="true"></i> Penilaian Ujian</h2>
-        <div>
-            <a href="../dashboard.php" class="btn btn-secondary"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali</a>
+            <div>
+            <a href="../dashboard.php" class="btn btn-secondary back-btn" onclick="var href=this.getAttribute('href'); document.body.style.transition='opacity .22s'; document.body.style.opacity=0; setTimeout(function(){ if (history.length>1) { history.back(); } else { window.location=href; } },220); return false;"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali</a>
         </div>
     </div>
 

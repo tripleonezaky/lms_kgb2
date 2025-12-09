@@ -204,10 +204,10 @@ $flash = get_flash();
 </head>
 <body>
 <div class="container">
-  <div class="header">
+      <div class="header">
     <h2><i class="fas fa-thumbtack" aria-hidden="true"></i> Detail Tugas</h2>
     <div>
-      <a href="index.php" class="btn btn-secondary"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali ke List</a>
+      <a href="index.php" class="btn btn-secondary back-btn" onclick="var href=this.getAttribute('href'); document.body.style.transition='opacity .22s'; document.body.style.opacity=0; setTimeout(function(){ if (history.length>1) { history.back(); } else { window.location=href; } },220); return false;"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali ke List</a>
       <a href="index.php?edit_id=<?php echo (int)$tugas['id']; ?>" class="btn btn-primary"><i class="fas fa-pen" aria-hidden="true"></i> Edit Tugas</a>
     </div>
   </div>
