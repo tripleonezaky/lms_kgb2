@@ -1,0 +1,87 @@
+/* Overrides spacing and submenu styles for admin */
+.content-area { padding: 32px 34px; }
+.card-header { padding: 20px 24px; }
+.card-body { padding: 24px; }
+.table-container table td { padding: 14px 16px; }
+/* Submenu styles */
+.submenu { margin-left: 8px; border-left: 1px dashed rgba(255,255,255,0.2); }
+.submenu .menu-item { padding-left: 28px; }
+
+/* Modern form styles for modal add/edit */
+.modal .modal-content { max-width: 840px; }
+.modal .modal-body { padding: 26px; }
+.modal .form-group label { font-weight: 600; color: #2b2f33; margin-bottom: 8px; }
+.modal .form-group input,
+.modal .form-group select,
+.modal .form-group textarea {
+  width: 100%;
+  border: 1px solid #dde1e6;
+  background: #fafbfc;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: #2c3e50;
+  transition: all .15s ease;
+}
+.modal .form-group input::placeholder,
+.modal .form-group textarea::placeholder { color: #9aa4af; }
+.modal .form-group input:focus,
+.modal .form-group select:focus,
+.modal .form-group textarea:focus {
+  outline: none;
+  border-color: #1e88e5;
+  box-shadow: 0 0 0 4px rgba(30,136,229,0.12);
+  background: #fff;
+}
+.modal .form-group select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #7b8a97 50%), linear-gradient(135deg, #7b8a97 50%, transparent 50%);
+  background-position: calc(100% - 20px) calc(50% - 3px), calc(100% - 14px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+.modal .form-group textarea { min-height: 96px; resize: vertical; }
+.modal .modal-footer .btn { border-radius: 10px; }
+.modal .form-group input[type="checkbox"],
+.modal .form-group input[type="radio"] {
+  width: auto; height: auto; margin-right: 8px;
+  accent-color: #1e88e5;
+}
+
+/* Toolbar spacing */
+.card-toolbar { margin-bottom: 14px; }
+
+/* Modernize filters in toolbar and headers */
+.card-toolbar input,
+.card-toolbar select,
+.card-header input,
+.card-header select {
+  border: 1px solid #dde1e6;
+  background: #fafbfc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #2c3e50;
+  transition: all .15s ease;
+}
+.card-toolbar select,
+.card-header select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #7b8a97 50%), linear-gradient(135deg, #7b8a97 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+.card-toolbar input:focus,
+.card-toolbar select:focus,
+.card-header input:focus,
+.card-header select:focus {
+  outline: none;
+  border-color: #1e88e5;
+  box-shadow: 0 0 0 4px rgba(30,136,229,0.12);
+  background: #fff;
+}

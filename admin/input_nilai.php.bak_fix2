@@ -1,0 +1,269 @@
+﻿<?php
+/**
+ * File: admin/input_nilai.php
+ * Fungsi: Input Nilai per Assignment dan per Komponen (tbl_nilai + tbl_komponen_nilai)
+ * Alur:
+ *  - Pilih assignment (guru-mapel-kelas-TA)
+ *  - Render siswa pada kelas assignment
+ *  - Render komponen nilai dari tbl_komponen_nilai
+ *  - Input nilai per siswa per komponen (0-100)
+ *  - Simpan (upsert) ke tbl_nilai dengan unik (id_siswa, id_assignment, id_komponen)
+ */
+
+require_once __DIR__ . '/../includes/auth_admin.php';
+require_once '../config/database.php';
+
+// =========================
+// Helper
+// =========================
+function ta_aktif(mysqli $conn){
+    $q = mysqli_query($conn, "SELECT id, nama_tahun_ajaran, semester FROM tahun_ajaran WHERE is_active=1 LIMIT 1");
+    return $q ? mysqli_fetch_assoc($q) : null;
+}
+
+function get_assignments(mysqli $conn, $filter_ta_id = 0) {
+    $sql = "SELECT ag.id,
+                   u.nama_lengkap AS nama_guru,
+                   m.nama_mapel,
+                   k.nama_kelas,
+                   k.id AS kelas_id,
+                   ta.id AS ta_id,
+                   ta.nama_tahun_ajaran
+            FROM assignment_guru ag
+            INNER JOIN users u ON u.id = ag.guru_id AND u.role='guru'
+            INNER JOIN mata_pelajaran m ON m.id = ag.mapel_id
+            INNER JOIN kelas k ON k.id = ag.kelas_id
+            INNER JOIN tahun_ajaran ta ON ta.id = ag.tahun_ajaran_id";
+    if ($filter_ta_id) {
+        $sql .= " WHERE ta.id=" . (int)$filter_ta_id;
+    }
+    $sql .= " ORDER BY ta.nama_tahun_ajaran DESC, u.nama_lengkap, k.nama_kelas, m.nama_mapel";
+    $res = mysqli_query($conn, $sql);
+    $list = [];
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) $list[] = $row;
+    }
+    return $list;
+}
+
+// =========================
+// Proses Simpan Nilai (Upsert)
+// =========================
+if (isset($_POST['simpan_nilai'])) {
+    $assignment_id = (int)($_POST['assignment_id'] ?? 0);
+    if ($assignment_id <= 0) {
+        $_SESSION['error'] = 'Assignment tidak valid.';
+        header('Location: input_nilai.php');
+        exit();
+    }
+
+    // Pastikan assignment ada
+    $cek = mysqli_query($conn, "SELECT ag.id, k.id AS kelas_id FROM assignment_guru ag INNER JOIN kelas k ON k.id=ag.kelas_id WHERE ag.id=$assignment_id LIMIT 1");
+    if (!$cek || mysqli_num_rows($cek) === 0) {
+        $_SESSION['error'] = 'Assignment tidak ditemukan.';
+        header('Location: input_nilai.php');
+        exit();
+    }
+
+    $nilai_input = $_POST['nilai'] ?? [];
+
+    // Prefetch data existing untuk reduce query? Sederhana: upsert per item.
+    foreach ($nilai_input as $siswa_id => $komponen_vals) {
+        $siswa_id = (int)$siswa_id;
+        if ($siswa_id <= 0 || !is_array($komponen_vals)) continue;
+
+        foreach ($komponen_vals as $komponen_id => $val) {
+            $komponen_id = (int)$komponen_id;
+            $val = trim((string)$val);
+            if ($komponen_id <= 0) continue;
+            if ($val === '') continue; // kosong: skip (tidak update/hapus)
+
+            // Validasi angka 0-100
+            $angka = floatval(str_replace(',', '.', $val));
+            if ($angka < 0) $angka = 0; if ($angka > 100) $angka = 100;
+
+            // Cek exist
+            $q = mysqli_query($conn, "SELECT id_nilai FROM tbl_nilai WHERE id_siswa=$siswa_id AND id_assignment=$assignment_id AND id_komponen=$komponen_id LIMIT 1");
+            if ($q && mysqli_num_rows($q) > 0) {
+                $row = mysqli_fetch_assoc($q);
+                $id_nilai = (int)$row['id_nilai'];
+                mysqli_query($conn, "UPDATE tbl_nilai SET nilai=" . $angka . " WHERE id_nilai=" . $id_nilai);
+            } else {
+                mysqli_query($conn, "INSERT INTO tbl_nilai (id_siswa, id_assignment, id_komponen, nilai) VALUES ($siswa_id, $assignment_id, $komponen_id, $angka)");
+            }
+        }
+    }
+
+    $_SESSION['success'] = 'Nilai berhasil disimpan.';
+    header('Location: input_nilai.php?assignment_id=' . $assignment_id);
+    exit();
+}
+
+// =========================
+// Data untuk tampilan
+// =========================
+$ta = ta_aktif($conn);
+$filter_ta_id = isset($_GET['ta']) ? (int)$_GET['ta'] : ($ta['id'] ?? 0);
+$assignments = get_assignments($conn, $filter_ta_id);
+
+$assignment_id = isset($_GET['assignment_id']) ? (int)$_GET['assignment_id'] : 0;
+$assignment = null;
+$kelas_id = 0;
+if ($assignment_id > 0) {
+    $res = mysqli_query($conn, "SELECT ag.id, ag.kelas_id, u.nama_lengkap AS nama_guru, m.nama_mapel, k.nama_kelas, ta.nama_tahun_ajaran
+                                FROM assignment_guru ag
+                                INNER JOIN users u ON u.id=ag.guru_id
+                                INNER JOIN mata_pelajaran m ON m.id=ag.mapel_id
+                                INNER JOIN kelas k ON k.id=ag.kelas_id
+                                INNER JOIN tahun_ajaran ta ON ta.id=ag.tahun_ajaran_id
+                                WHERE ag.id=$assignment_id LIMIT 1");
+    if ($res && mysqli_num_rows($res) > 0) {
+        $assignment = mysqli_fetch_assoc($res);
+        $kelas_id = (int)$assignment['kelas_id'];
+    }
+}
+
+$komponen = [];
+$res_k = mysqli_query($conn, "SELECT id_komponen, nama_komponen, bobot FROM tbl_komponen_nilai ORDER BY id_komponen");
+if ($res_k) while ($r = mysqli_fetch_assoc($res_k)) $komponen[] = $r;
+
+$siswa = [];
+if ($kelas_id) {
+    $res_s = mysqli_query($conn, "SELECT id, nama_lengkap FROM users WHERE role='siswa' AND is_active=1 AND kelas_id=$kelas_id ORDER BY nama_lengkap");
+    if ($res_s) while ($r = mysqli_fetch_assoc($res_s)) $siswa[] = $r;
+}
+
+$nilai_map = [];
+if ($assignment_id && $kelas_id) {
+    $res_n = mysqli_query($conn, "SELECT id_siswa, id_komponen, nilai FROM tbl_nilai WHERE id_assignment=$assignment_id");
+    if ($res_n) {
+        while ($r = mysqli_fetch_assoc($res_n)) {
+            $sid = (int)$r['id_siswa'];
+            $kid = (int)$r['id_komponen'];
+            $nilai_map[$sid][$kid] = (float)$r['nilai'];
+        }
+    }
+}
+
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Nilai - Admin</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<?php include 'sidebar.php'; ?>
+<div class="main-content">
+    <div class="top-bar">
+        <h1><i class="fas fa-pen" aria-hidden="true"></i> Input Nilai</h1>
+        <div class="user-info">
+            <span>Admin: <strong><?php echo htmlspecialchars($_SESSION['nama_lengkap']); ?></strong></span>
+            <a href="../logout.php" class="btn-logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <?php if(isset($_SESSION['success'])): ?>
+            <div class="alert alert-success"><i class="fas fa-check-circle" aria-hidden="true"></i> <?php echo $_SESSION['success']; unset($_SESSION['success']); ?></div>
+        <?php endif; ?>
+        <?php if(isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger"><i class="fas fa-times-circle" aria-hidden="true"></i> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>
+        <?php endif; ?>
+
+        <div class="card">
+            <div class="card-header" style="gap:10px; display:flex; align-items:center; justify-content:space-between;">
+                <h3>📋 Pilih Assignment</h3>
+                <form method="GET" action="" class="toolbar" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <label>TA:</label>
+                    <select name="ta" onchange="this.form.submit()" class="input-select">
+                        <option value="">-- Semua --</option>
+                        <?php 
+                        $resTA = mysqli_query($conn, "SELECT id, nama_tahun_ajaran, is_active FROM tahun_ajaran ORDER BY nama_tahun_ajaran DESC");
+                        if ($resTA) { while($t = mysqli_fetch_assoc($resTA)) { ?>
+                            <option value="<?php echo $t['id']; ?>" <?php echo ($filter_ta_id==$t['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($t['nama_tahun_ajaran']); ?> <?php echo $t['is_active'] ? ' - Aktif' : ''; ?>
+                            </option>
+                        <?php } } ?>
+                    </select>
+                    <label>Assignment:</label>
+                    <select name="assignment_id" onchange="this.form.submit()" required class="input-select">
+                        <option value="">-- Pilih Assignment --</option>
+                        <?php foreach($assignments as $a): ?>
+                            <option value="<?php echo $a['id']; ?>" <?php echo ($assignment_id==$a['id'])?'selected':''; ?>>
+                                <?php echo htmlspecialchars($a['nama_tahun_ajaran']); ?> - <?php echo htmlspecialchars($a['nama_kelas']); ?> - <?php echo htmlspecialchars($a['nama_mapel']); ?> - <?php echo htmlspecialchars($a['nama_guru']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+            </div>
+
+            <div class="table-container" style="padding: 20px;">
+                <?php if(!$assignment): ?>
+                    <div class="alert alert-info">Silakan pilih assignment untuk memulai input nilai.</div>
+                <?php elseif(empty($komponen)): ?>
+                    <div class="alert alert-warning">Belum ada komponen nilai. Tambahkan di menu Komponen Nilai.</div>
+                <?php elseif(empty($siswa)): ?>
+                    <div class="alert alert-warning">Tidak ada siswa aktif pada kelas ini.</div>
+                <?php else: ?>
+                    <div class="alert alert-info" style="display:flex;gap:16px;flex-wrap:wrap;">
+                        <div><strong>Kelas:</strong> <?php echo htmlspecialchars($assignment['nama_kelas']); ?></div>
+                        <div><strong>Mapel:</strong> <?php echo htmlspecialchars($assignment['nama_mapel']); ?></div>
+                        <div><strong>Guru:</strong> <?php echo htmlspecialchars($assignment['nama_guru']); ?></div>
+                        <div><strong>TA:</strong> <?php echo htmlspecialchars($assignment['nama_tahun_ajaran']); ?></div>
+                    </div>
+
+                    <form method="POST" action="">
+                        <input type="hidden" name="assignment_id" value="<?php echo $assignment_id; ?>">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Siswa</th>
+                                    <?php foreach($komponen as $k): ?>
+                                        <th><?php echo htmlspecialchars($k['nama_komponen']); ?><br><small>(Bobot <?php echo (int)$k['bobot']; ?>%)</small></th>
+                                    <?php endforeach; ?>
+                                    <th>Total Akhir</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php $no=1; foreach($siswa as $s): ?>
+                                <?php $total=0.0; ?>
+                                <tr>
+                                    <td><?php echo $no++; ?></td>
+                                    <td><strong><?php echo htmlspecialchars($s['nama_lengkap']); ?></strong></td>
+                                    <?php foreach($komponen as $k): ?>
+                                        <?php $current = $nilai_map[$s['id']][$k['id_komponen']] ?? null; if($current!==null){ $total += ((float)$current * (int)$k['bobot'])/100.0; } ?>
+                                        <td>
+                                            <input class="input-number" type="number" step="0.01" min="0" max="100" name="nilai[<?php echo $s['id']; ?>][<?php echo $k['id_komponen']; ?>]" value="<?php echo ($current!==null? htmlspecialchars(number_format((float)$current,2,'.','')) : ''); ?>">
+                                        </td>
+                                    <?php endforeach; ?>
+                                    <td><span class="badge badge-info"><?php echo number_format($total,2); ?></span></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <div class="toolbar" style="margin-top: 15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <button type="submit" name="simpan_nilai" class="btn btn-success"><i class="fas fa-save" aria-hidden="true"></i> Simpan Nilai</button>
+                            <a href="rekap_nilai.php<?php echo $assignment_id? ('?assignment_id='.$assignment_id):''; ?>" class="btn btn-primary">📊 Lihat Rekap</a>
+                        </div>
+                    </form>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../assets/js/script.js"></script>
+<style>
+/**** Lightweight form/input harmonization ****/
+.toolbar label { color:#334155; font-weight:600; }
+.input-select { padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; min-width: 220px; }
+.input-select:focus { outline:none; border-color:#1e5ba8; box-shadow:0 0 0 3px rgba(30,91,168,.15); }
+.input-number { width:100px; padding:6px 8px; border:1px solid #e2e8f0; border-radius:6px; text-align:right; }
+.input-number:focus { outline:none; border-color:#1e5ba8; box-shadow:0 0 0 3px rgba(30,91,168,.15); }
+</style>
+</body>
+</html>

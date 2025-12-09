@@ -1,0 +1,151 @@
+﻿<?php
+/**
+ * File: admin/laporan_guru.php
+ * Fitur: Laporan data guru (akun role=guru) dengan filter aktif/nonaktif dan pencarian
+ * Ekspor: CSV dan Cetak
+ */
+require_once '../includes/check_session.php';
+require_once '../includes/check_role.php';
+check_role(['admin']);
+require_once '../config/database.php';
+
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$status = isset($_GET['status']) ? trim($_GET['status']) : '';
+
+$where = "WHERE role = 'guru'";
+if ($search !== '') {
+    $s = mysqli_real_escape_string($conn, $search);
+    $where .= " AND (username LIKE '%$s%' OR nama_lengkap LIKE '%$s%' OR email LIKE '%$s%' OR no_whatsapp LIKE '%$s%' OR kode_guru LIKE '%$s%' OR nuptk LIKE '%$s%')";
+}
+if ($status === 'aktif') {
+    $where .= " AND is_active = 1";
+} elseif ($status === 'nonaktif') {
+    $where .= " AND is_active = 0";
+}
+
+$sql = "SELECT id, username, nama_lengkap, email, no_whatsapp, kode_guru, nuptk, is_active, created_at FROM users $where ORDER BY created_at DESC";
+$res = mysqli_query($conn, $sql);
+$rows = [];
+if ($res) { while ($r = mysqli_fetch_assoc($res)) { $rows[] = $r; } }
+
+if (isset($_GET['export']) && (int)$_GET['export'] === 1) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=laporan_guru.csv');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['No','Username','Kode Guru','NUPTK','Nama Lengkap','Email','No. WA','Status','Dibuat']);
+    $no = 1;
+    foreach ($rows as $r) {
+        fputcsv($out, [
+            $no++, $r['username'], $r['kode_guru'], $r['nuptk'], $r['nama_lengkap'], $r['email'], $r['no_whatsapp'],
+            ((int)$r['is_active']===1?'Aktif':'Nonaktif'), $r['created_at']
+        ]);
+    }
+    fclose($out);
+    exit();
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Guru - Admin</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/_overrides.css">
+    <style>
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 999; }
+        .content-area { padding: 30px; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .card-header { padding: 20px 24px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 24px; }
+        .filters { display:flex; gap:10px; flex-wrap:wrap; }
+        input[type=text], select { padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; }
+        .btn { cursor:pointer; }
+        .btn-primary { background:#1e5ba8; color:#fff; padding:8px 14px; border-radius:8px; border:none; }
+        .btn-secondary { background:#f1f5f9; color:#0f172a; padding:8px 14px; border-radius:8px; border:1px solid #e2e8f0; }
+        .btn-outline { background:#fff; color:#0f172a; padding:8px 12px; border-radius:8px; border:1px solid #cbd5e1; }
+        .table-container { overflow:auto; }
+        table { width:100%; border-collapse: collapse; }
+        th, td { border-bottom:1px solid #eee; padding:10px; text-align:left; }
+        th { background:#f8fafc; }
+        .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; }
+        .badge-success { background:#dcfce7; color:#166534; }
+        .badge-danger { background:#fee2e2; color:#991b1b; }
+        .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    </style>
+</head>
+<body>
+<?php include 'sidebar.php'; ?>
+<div class="main-content">
+    <div class="top-bar">
+        <h1>📋 Laporan Guru</h1>
+        <div class="user-info">
+            <span>Admin: <strong><?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?></strong></span>
+            <a href="../logout.php" class="btn-logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="card">
+            <div class="card-header">
+                <h3>Filter</h3>
+                <div class="toolbar">
+                    <a class="btn btn-outline" href="?search=<?php echo urlencode($search); ?>&status=<?php echo urlencode($status); ?>&export=1">⬇️ Export CSV</a>
+                    <button class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print" aria-hidden="true"></i> Cetak</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="filters" action="">
+                    <input type="text" name="search" placeholder="Cari Username/Nama/Email/NUPTK/Kode Guru/WA" value="<?php echo htmlspecialchars(($search) ?? ''); ?>">
+                    <select name="status">
+                        <option value="">Semua Status</option>
+                        <option value="aktif" <?php echo $status==='aktif'?'selected':''; ?>>Aktif</option>
+                        <option value="nonaktif" <?php echo $status==='nonaktif'?'selected':''; ?>>Nonaktif</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Terapkan</button>
+                    <?php if ($search !== '' || $status !== ''): ?><a href="laporan_guru.php" class="btn btn-secondary" title="Reset"><i class="fas fa-eraser" aria-hidden="true"></i></a><?php endif; ?>
+                </form>
+
+                <div class="table-container" style="margin-top:12px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Username</th>
+                                <th>Kode Guru</th>
+                                <th>NUPTK</th>
+                                <th>Nama Lengkap</th>
+                                <th>Email</th>
+                                <th>No. WA</th>
+                                <th>Status</th>
+                                <th>Tanggal Dibuat</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (count($rows) === 0): ?>
+                                <tr><td colspan="9" style="text-align:center; padding:18px; color:#64748b;">Tidak ada data</td></tr>
+                            <?php else: $no=1; foreach ($rows as $r): ?>
+                                <tr>
+                                    <td><?php echo $no++; ?></td>
+                                    <td><?php echo htmlspecialchars(($r['username']) ?? ''); ?></td>
+                                    <td><?php echo htmlspecialchars(($r['kode_guru']) ?? ''); ?></td>
+                                    <td><?php echo $r['nuptk'] ? htmlspecialchars(($r['nuptk']) ?? '') : '-'; ?></td>
+                                    <td><strong><?php echo htmlspecialchars(($r['nama_lengkap']) ?? ''); ?></strong></td>
+                                    <td><?php echo htmlspecialchars(($r['email']) ?? ''); ?></td>
+                                    <td><?php echo $r['no_whatsapp'] ? htmlspecialchars(($r['no_whatsapp']) ?? '') : '-'; ?></td>
+                                    <td><?php echo ((int)$r['is_active']===1)?'<span class="badge badge-success">Aktif</span>':'<span class="badge badge-danger">Nonaktif</span>'; ?></td>
+                                    <td><?php echo htmlspecialchars(($r['created_at']) ?? ''); ?></td>
+                                </tr>
+                            <?php endforeach; endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+
+

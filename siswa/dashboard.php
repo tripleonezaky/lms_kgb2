@@ -1,0 +1,395 @@
+﻿<?php
+session_start();
+
+// Proteksi sesi dan role
+require_once '../includes/check_session.php';
+require_once '../includes/check_role.php';
+check_role(['siswa']);
+
+require_once '../config/database.php';
+
+// Data siswa
+$siswa_id = (int)$_SESSION['user_id'];
+$kelas_id = isset($_SESSION['kelas_id']) ? (int)$_SESSION['kelas_id'] : 0;
+
+// Ambil info kelas siswa (nama_kelas, tingkat, jurusan)
+$kelas_info = null;
+$sql_kelas = "
+    SELECT k.nama_kelas, k.tingkat, j.nama_jurusan, j.singkatan
+    FROM users u
+    JOIN kelas k ON u.kelas_id = k.id
+    JOIN jurusan j ON k.jurusan_id = j.id
+    WHERE u.id = {$siswa_id}
+    LIMIT 1
+";
+$res_kelas = query($sql_kelas);
+if ($res_kelas && num_rows($res_kelas) === 1) {
+    $kelas_info = fetch_assoc($res_kelas);
+}
+
+// Hitung total materi (berdasarkan assignment_guru untuk kelas siswa)
+$total_materi = 0;
+$sql_total_materi = "
+    SELECT COUNT(m.id) AS total
+    FROM materi m
+    JOIN assignment_guru ag ON m.assignment_id = ag.id
+    WHERE ag.kelas_id = {$kelas_id}
+";
+$res_total_materi = query($sql_total_materi);
+if ($res_total_materi) {
+    $row = fetch_assoc($res_total_materi);
+    $total_materi = (int)$row['total'];
+}
+
+// Hitung total tugas (berdasarkan assignment_guru untuk kelas siswa)
+$total_tugas = 0;
+$sql_total_tugas = "
+    SELECT COUNT(t.id) AS total
+    FROM tugas t
+    JOIN assignment_guru ag ON t.assignment_id = ag.id
+    WHERE ag.kelas_id = {$kelas_id}
+";
+$res_total_tugas = query($sql_total_tugas);
+if ($res_total_tugas) {
+    $row = fetch_assoc($res_total_tugas);
+    $total_tugas = (int)$row['total'];
+}
+
+// Hitung tugas yang sudah dikumpulkan oleh siswa ini
+$tugas_submitted = 0;
+$sql_submitted = "
+    SELECT COUNT(*) AS total
+    FROM pengumpulan_tugas pt
+    WHERE pt.siswa_id = {$siswa_id}
+";
+$res_submitted = query($sql_submitted);
+if ($res_submitted) {
+    $row = fetch_assoc($res_submitted);
+    $tugas_submitted = (int)$row['total'];
+}
+
+// Hitung tugas yang belum dikumpulkan
+$tugas_pending = max($total_tugas - $tugas_submitted, 0);
+
+// Ambil 5 materi terbaru untuk kelas siswa
+$sql_materi_baru = "
+    SELECT m.id,
+           m.judul_materi AS judul,
+           m.tanggal_upload AS created_at,
+           mp.nama_mapel,
+           u.nama_lengkap AS nama_guru,
+           k.nama_kelas
+    FROM materi m
+    JOIN assignment_guru ag ON m.assignment_id = ag.id
+    JOIN mata_pelajaran mp ON ag.mapel_id = mp.id
+    JOIN users u ON ag.guru_id = u.id
+    JOIN kelas k ON ag.kelas_id = k.id
+    WHERE ag.kelas_id = {$kelas_id}
+    ORDER BY m.tanggal_upload DESC
+    LIMIT 5
+";
+$res_materi_baru = query($sql_materi_baru);
+$materi_terbaru = $res_materi_baru ? fetch_all($res_materi_baru) : [];
+
+// Ambil 5 tugas terbaru untuk kelas siswa + status pengumpulan oleh siswa
+$sql_tugas_baru = "
+    SELECT t.id,
+           t.judul_tugas AS judul,
+           t.deadline,
+           mp.nama_mapel,
+           u.nama_lengkap AS nama_guru,
+           pt.id AS pengumpulan_id,
+           pt.status AS status_pengumpulan
+    FROM tugas t
+    JOIN assignment_guru ag ON t.assignment_id = ag.id
+    JOIN mata_pelajaran mp ON ag.mapel_id = mp.id
+    JOIN users u ON ag.guru_id = u.id
+    LEFT JOIN pengumpulan_tugas pt ON pt.tugas_id = t.id AND pt.siswa_id = {$siswa_id}
+    WHERE ag.kelas_id = {$kelas_id}
+    ORDER BY t.deadline ASC
+    LIMIT 5
+";
+$res_tugas_baru = query($sql_tugas_baru);
+$tugas_terbaru = $res_tugas_baru ? fetch_all($res_tugas_baru) : [];
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Siswa - LMS SMKS KGB2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: #f5f7fa; display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: linear-gradient(180deg, #1e5ba8 0%, #164a8a 100%); color: white; position: fixed; height: 100vh; overflow-y: auto; transition: all 0.3s; z-index: 1000; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header img { width: 60px; height: 60px; margin-bottom: 10px; filter: drop-shadow(0 0 6px rgba(255,255,255,0.95)); }
+        .sidebar-header h2 { font-size: 18px; font-weight: 700; margin-bottom: 5px; letter-spacing: .2px; }
+        .sidebar-header p { font-size: 12px; opacity: 0.8; }
+        .sidebar-menu { padding: 20px 0; flex: 1 1 auto; }
+        .menu-item { padding: 15px 25px; display: flex; align-items: center; gap: 15px; color: white; text-decoration: none; transition: all 0.3s; border-left: 4px solid transparent; }
+        .menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.1); border-left-color: #D4AF37; }
+        .menu-item i { font-size: 18px; width: 20px; }
+        .menu-item span { font-size: 14px; font-weight: 500; }
+        .sidebar-footer { padding: 20px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; text-align: center; }
+        .sidebar-footer p { font-size: 10px; color: rgba(255, 255, 255, 1); margin: 0; line-height: 1.4; }
+        .main-content { margin-left: 260px; flex: 1; display: flex; flex-direction: column; }
+        .top-navbar { background: white; padding: 20px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 999; }
+        .navbar-title h1 { font-size: 24px; color: #2C3E50; font-weight: 600; }
+        .navbar-title p { font-size: 13px; color: #7f8c8d; margin-top: 5px; }
+        .navbar-right { display: flex; align-items: center; gap: 20px; }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-avatar { width: 45px; height: 45px; background: linear-gradient(135deg, #1e5ba8, #3a7bc8); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 18px; }
+        .user-details h4 { font-size: 14px; color: #2C3E50; font-weight: 600; }
+        .user-details p { font-size: 12px; color: #7f8c8d; }
+        .btn-logout { padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-logout:hover { background: #c0392b; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3); }
+        .content-area { padding: 30px; flex: 1; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 20px; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.12); }
+        .stat-icon { width: 70px; height: 70px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 30px; color: white; }
+        .stat-icon.blue { background: linear-gradient(135deg, #1e5ba8, #3a7bc8); }
+        .stat-icon.green { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .stat-icon.orange { background: linear-gradient(135deg, #e67e22, #f39c12); }
+        .stat-icon.red { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .stat-info h3 { font-size: 32px; color: #2C3E50; font-weight: 700; margin-bottom: 5px; }
+        .stat-info p { font-size: 14px; color: #7f8c8d; font-weight: 500; }
+        .welcome-card { background: linear-gradient(135deg, #1e5ba8 0%, #3a7bc8 100%); padding: 40px; border-radius: 20px; color: white; margin-bottom: 30px; box-shadow: 0 10px 40px rgba(30, 91, 168, 0.3); display: flex; justify-content: space-between; align-items: center; }
+        .welcome-content h2 { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+        .welcome-content p { font-size: 15px; opacity: 0.95; line-height: 1.6; margin-bottom: 15px; }
+        .kelas-badge { background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 25px; display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
+        .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .content-box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+        .content-box h3 { font-size: 20px; color: #2C3E50; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .item-list { display: flex; flex-direction: column; gap: 15px; }
+        .item { padding: 15px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid #1e5ba8; transition: all 0.3s; }
+        .item:hover { background: #e9ecef; transform: translateX(5px); }
+        .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .item-title { font-weight: 600; color: #2C3E50; font-size: 14px; }
+        .item-badge { padding: 4px 12px; border-radius: 15px; font-size: 11px; font-weight: 600; }
+        .badge-blue { background: #e3f2fd; color: #1e5ba8; }
+        .badge-green { background: #e8f5e9; color: #27ae60; }
+        .badge-red { background: #ffebee; color: #e74c3c; }
+        .badge-orange { background: #fff3e0; color: #e67e22; }
+        .item-meta { display: flex; align-items: center; gap: 15px; font-size: 12px; color: #7f8c8d; }
+        .item-meta span { display: flex; align-items: center; gap: 5px; }
+        .item-actions { margin-top: 10px; display: flex; gap: 10px; }
+        .btn-view { padding: 8px 16px; background: #1e5ba8; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.3s; }
+        .btn-view:hover { background: #164a8a; transform: translateY(-2px); }
+        .empty-state { text-align: center; padding: 40px 20px; color: #7f8c8d; }
+        .empty-state i { font-size: 60px; margin-bottom: 15px; opacity: 0.3; }
+        .empty-state p { font-size: 14px; }
+        @media (max-width: 968px) { .content-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            .sidebar { width: 0; overflow: hidden; }
+            .sidebar.active { width: 260px; }
+            .main-content { margin-left: 0; }
+            .top-navbar { padding: 15px 20px; }
+            .navbar-title h1 { font-size: 20px; }
+            .user-details { display: none; }
+            .content-area { padding: 20px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .welcome-card { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <img src="../assets/img/logo-kgb2.png" alt="Logo">
+            <h2>Portal Resmi LMS KGB2</h2>
+            <p>Panel Siswa</p>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="dashboard.php" class="menu-item active">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="lihat_materi.php" class="menu-item">
+                <i class="fas fa-book-reader"></i>
+                <span>Materi Pembelajaran</span>
+            </a>
+            <a href="lihat_tugas.php" class="menu-item">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Tugas Saya</span>
+            </a>
+            <a href="nilai_saya.php" class="menu-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Nilai Saya</span>
+            </a>
+            <a href="ujian/index.php" class="menu-item">
+                <i class="fas fa-file-signature"></i>
+                <span>Ujian</span>
+            </a>
+            <a href="../profile.php" class="menu-item">
+                <i class="fas fa-user-cog"></i>
+                <span>Profil Saya</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <p>© 2025 Learning Management System<br>
+            by tripleone. All right reserved</p>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Navbar -->
+        <nav class="top-navbar">
+            <div class="navbar-title">
+                <h1>Dashboard Siswa</h1>
+                <p>Akses materi dan kerjakan tugas dengan mudah</p>
+            </div>
+            <div class="navbar-right">
+                <div class="user-info">
+                    <?php if (!empty($_SESSION['foto'])): ?>
+                        <img src="../<?php echo htmlspecialchars(($_SESSION['foto']) ?? ''); ?>" alt="Avatar" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #fff;">
+                    <?php else: ?>
+                        <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)); ?></div>
+                    <?php endif; ?>
+                    <div class="user-details">
+                        <h4><?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?></h4>
+                        <p>Siswa</p>
+                    </div>
+                </div>
+                <a href="../logout.php" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </nav>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Welcome Card -->
+            <div class="welcome-card">
+                <div class="welcome-content">
+                    <h2>🎓 Selamat Datang, <?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?>!</h2>
+                    <p>Semangat belajar! Akses materi pembelajaran dan kerjakan tugas dengan baik.</p>
+                    <?php if ($kelas_info): ?>
+                        <div class="kelas-badge">
+                            <i class="fas fa-graduation-cap"></i>
+                            Kelas: <?php echo htmlspecialchars(($kelas_info['nama_kelas']) ?? ''); ?> - <?php echo htmlspecialchars(($kelas_info['singkatan']) ?? ''); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3><?php echo (int)$total_materi; ?></h3>
+                        <p>Materi Tersedia</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3><?php echo (int)$total_tugas; ?></h3>
+                        <p>Total Tugas</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3><?php echo (int)$tugas_submitted; ?></h3>
+                        <p>Sudah Dikumpulkan</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon red">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3><?php echo (int)$tugas_pending; ?></h3>
+                        <p>Belum Dikumpulkan</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Materi Terbaru -->
+                <div class="content-box">
+                    <h3><i class="fas fa-file-alt"></i> Materi Terbaru</h3>
+                    <div class="item-list">
+                        <?php if (!empty($materi_terbaru)): ?>
+                            <?php foreach ($materi_terbaru as $materi): ?>
+                                <div class="item">
+                                    <div class="item-header">
+                                        <span class="item-title"><?php echo htmlspecialchars(($materi['judul']) ?? ''); ?></span>
+                                        <span class="item-badge badge-blue"><?php echo htmlspecialchars(($materi['nama_mapel']) ?? ''); ?></span>
+                                    </div>
+                                    <div class="item-meta">
+                                        <span><i class="fas fa-user"></i> <?php echo htmlspecialchars(($materi['nama_guru']) ?? ''); ?></span>
+                                        <span><i class="fas fa-calendar"></i> <?php echo date('d M Y', strtotime($materi['created_at'])); ?></span>
+                                    </div>
+                                    <div class="item-actions">
+                                        <a href="lihat_materi.php" class="btn-view">Lihat Materi</a>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-folder-open"></i>
+                                <p>Belum ada materi tersedia</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Tugas Terbaru -->
+                <div class="content-box">
+                    <h3><i class="fas fa-clipboard-list"></i> Tugas Terbaru</h3>
+                    <div class="item-list">
+                        <?php if (!empty($tugas_terbaru)): ?>
+                            <?php foreach ($tugas_terbaru as $tugas): ?>
+                                <div class="item">
+                                    <div class="item-header">
+                                        <span class="item-title"><?php echo htmlspecialchars(($tugas['judul']) ?? ''); ?></span>
+                                        <?php if ($tugas['status_pengumpulan'] === 'submitted'): ?>
+                                            <span class="item-badge badge-green">Sudah Dikumpulkan</span>
+                                        <?php elseif ($tugas['status_pengumpulan'] === 'graded'): ?>
+                                            <span class="item-badge badge-blue">Sudah Dinilai</span>
+                                        <?php else: ?>
+                                            <span class="item-badge badge-red">Belum Dikumpulkan</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="item-meta">
+                                        <span><i class="fas fa-book"></i> <?php echo htmlspecialchars(($tugas['nama_mapel']) ?? ''); ?></span>
+                                        <span><i class="fas fa-clock"></i> <?php echo date('d M Y', strtotime($tugas['deadline'])); ?></span>
+                                    </div>
+                                    <div class="item-actions">
+                                        <a href="lihat_tugas.php" class="btn-view" title="Detail Tugas"><i class="fas fa-eye" aria-hidden="true"></i></a>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-clipboard"></i>
+                                <p>Belum ada tugas tersedia</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+

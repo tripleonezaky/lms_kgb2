@@ -1,0 +1,429 @@
+﻿<?php
+/**
+ * File: admin/profil_sekolah.php
+ * Fitur: Menampilkan dan mengelola Profil Sekolah dengan field terstruktur.
+ * Catatan skema: Karena tabel tbl_profil_sekolah terbatas, field tambahan disimpan
+ *   dalam kolom alamat sebagai JSON (embedded). Tidak perlu migrasi DB.
+ */
+session_start();
+require_once '../includes/check_session.php';
+require_once '../includes/check_role.php';
+check_role(['admin']);
+require_once '../config/database.php';
+
+// Helper JSON encode/decode aman
+function json_decode_safe($str) {
+    $data = json_decode($str, true);
+    return (json_last_error() === JSON_ERROR_NONE) ? $data : null;
+}
+
+// Ambil profil (id=1 tunggal)
+$q = mysqli_query($conn, "SELECT * FROM tbl_profil_sekolah WHERE id = 1 LIMIT 1");
+$profil = null;
+if ($q && mysqli_num_rows($q) === 1) {
+    $profil = mysqli_fetch_assoc($q);
+}
+
+// Struktur data tambahan yang disimpan dalam kolom alamat (JSON)
+$defaults_extra = [
+    'nss' => '',
+    'status' => '',
+    'alamat_sekolah' => '',
+    'kecamatan' => '',
+    'kota' => '',
+    'provinsi' => '',
+    'kode_pos' => '',
+    'telpon' => '',
+    'sk_pendirian' => '',
+    'status_akreditasi' => '',
+    'waktu_kbm' => '',
+    'sk_kepsek_no' => '',
+    'sk_kepsek_tanggal' => '',
+    'jurusan' => [],
+];
+
+$extra = $defaults_extra;
+if ($profil && !empty($profil['alamat'])) {
+    $maybe_json = json_decode_safe($profil['alamat']);
+    if (is_array($maybe_json) && isset($maybe_json['__type']) && $maybe_json['__type'] === 'profil_sekolah') {
+        $extra = array_merge($defaults_extra, $maybe_json['data'] ?? []);
+    } else {
+        // fallback: alamat lama plain text, peta minimal ke telpon
+        $extra['telpon'] = $profil['telp'] ?? '';
+    }
+}
+
+$success = '';
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ambil input utama
+    $nama_sekolah   = mysqli_real_escape_string($conn, trim($_POST['nama_sekolah']));
+    $nss            = trim($_POST['nss']);
+    $npsn           = mysqli_real_escape_string($conn, trim($_POST['npsn']));
+    $status         = trim($_POST['status']);
+
+    // Alamat sekolah (teks bebas)
+    $alamat_sekolah = trim($_POST['alamat_sekolah']);
+
+    // Alamat terstruktur
+    $kecamatan      = trim($_POST['kecamatan']);
+    $kota           = trim($_POST['kota']);
+    $provinsi       = trim($_POST['provinsi']);
+    $kode_pos       = trim($_POST['kode_pos']);
+
+    // Kontak dan legal
+    $telpon         = trim($_POST['telpon']);
+    $sk_pendirian   = trim($_POST['sk_pendirian']);
+    $website        = mysqli_real_escape_string($conn, trim($_POST['website']));
+    $email          = mysqli_real_escape_string($conn, trim($_POST['email']));
+
+    // Akreditasi & KBM
+    $status_akreditasi = trim($_POST['status_akreditasi']);
+    $waktu_kbm         = trim($_POST['waktu_kbm']);
+
+    // Kepsek
+    $kepala_sekolah = mysqli_real_escape_string($conn, trim($_POST['kepala_sekolah']));
+    $sk_kepsek_no   = trim($_POST['sk_kepsek_no']);
+    $sk_kepsek_tanggal = trim($_POST['sk_kepsek_tanggal']);
+
+    // Jurusan (array)
+    $jurusan = isset($_POST['jurusan']) && is_array($_POST['jurusan']) ? array_values(array_filter(array_map('trim', $_POST['jurusan']), function($v){ return $v !== ''; })) : [];
+
+    if ($nama_sekolah === '' || $npsn === '') {
+        $error = 'Nama sekolah dan NPSN wajib diisi';
+    } else {
+        // Susun payload JSON untuk kolom alamat
+        $payload = [
+            '__type' => 'profil_sekolah',
+            'data' => [
+                'nss' => $nss,
+                'status' => $status,
+                'alamat_sekolah' => $alamat_sekolah,
+                'kecamatan' => $kecamatan,
+                'kota' => $kota,
+                'provinsi' => $provinsi,
+                'kode_pos' => $kode_pos,
+                'telpon' => $telpon,
+                'sk_pendirian' => $sk_pendirian,
+                'status_akreditasi' => $status_akreditasi,
+                'waktu_kbm' => $waktu_kbm,
+                'sk_kepsek_no' => $sk_kepsek_no,
+                'sk_kepsek_tanggal' => $sk_kepsek_tanggal,
+                'jurusan' => $jurusan,
+            ]
+        ];
+        $alamat_store = mysqli_real_escape_string($conn, json_encode($payload, JSON_UNESCAPED_UNICODE));
+
+        // Insert/Update tunggal id=1
+        if ($q && mysqli_num_rows($q) === 1) {
+            $sql = "UPDATE tbl_profil_sekolah SET 
+                        nama_sekolah = '$nama_sekolah',
+                        npsn = '$npsn',
+                        alamat = '$alamat_store',
+                        telp = '".mysqli_real_escape_string($conn, $telpon)."',
+                        email = '$email',
+                        website = '$website',
+                        kepala_sekolah = '$kepala_sekolah',
+                        nip_kepsek = '".mysqli_real_escape_string($conn, $sk_kepsek_no)."'
+                    WHERE id = 1 LIMIT 1";
+            $ok = mysqli_query($conn, $sql);
+        } else {
+            $sql = "INSERT INTO tbl_profil_sekolah (id, nama_sekolah, npsn, alamat, telp, email, website, kepala_sekolah, nip_kepsek, logo)
+                    VALUES (1, '$nama_sekolah', '$npsn', '$alamat_store', '".mysqli_real_escape_string($conn, $telpon)."', '$email', '$website', '$kepala_sekolah', '".mysqli_real_escape_string($conn, $sk_kepsek_no)."', 'logo-kgb2.png')";
+            $ok = mysqli_query($conn, $sql);
+        }
+
+        if ($ok) {
+            // Upload logo jika ada
+            if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+                $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+                $tmp = $_FILES['logo']['tmp_name'];
+                $size = (int)$_FILES['logo']['size'];
+                $type = function_exists('mime_content_type') ? mime_content_type($tmp) : $_FILES['logo']['type'];
+                if (isset($allowed[$type]) && $size <= 2 * 1024 * 1024) {
+                    $ext = $allowed[$type];
+                    $dirPublic = 'assets/uploads/logo_sekolah';
+                    $base = realpath(__DIR__ . '/../');
+                    $dirFs = $base . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $dirPublic);
+                    if (!is_dir($dirFs)) { @mkdir($dirFs, 0777, true); }
+                    $fname = 'logo-' . time() . '.' . $ext;
+                    $destFs = $dirFs . DIRECTORY_SEPARATOR . $fname;
+                    if (@move_uploaded_file($tmp, $destFs)) {
+                        $pathRel = $dirPublic . '/' . $fname;
+                        @mysqli_query($conn, "UPDATE tbl_profil_sekolah SET logo = '" . mysqli_real_escape_string($conn, $pathRel) . "' WHERE id = 1");
+                    }
+                }
+            }
+
+            $success = 'Profil sekolah berhasil disimpan.';
+            // Refresh data
+            $q = mysqli_query($conn, "SELECT * FROM tbl_profil_sekolah WHERE id = 1 LIMIT 1");
+            $profil = $q ? mysqli_fetch_assoc($q) : null;
+            $maybe_json = ($profil && !empty($profil['alamat'])) ? json_decode_safe($profil['alamat']) : null;
+            $extra = $defaults_extra;
+            if (is_array($maybe_json) && ($maybe_json['__type'] ?? '') === 'profil_sekolah') {
+                $extra = array_merge($defaults_extra, $maybe_json['data'] ?? []);
+            }
+        } else {
+            $error = 'Gagal menyimpan profil: ' . mysqli_error($conn);
+        }
+    }
+}
+
+// Pastikan variabel untuk form terisi
+$nama_sekolah   = $profil['nama_sekolah'] ?? '';
+$npsn           = $profil['npsn'] ?? '';
+$website        = $profil['website'] ?? '';
+$email          = $profil['email'] ?? '';
+$kepala_sekolah = $profil['kepala_sekolah'] ?? '';
+
+// Pecah jurusan untuk tampilan
+$jurusan = is_array($extra['jurusan']) ? $extra['jurusan'] : [];
+
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil Sekolah - Admin</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/_overrides.css">
+    <style>
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 999; }
+        .content-area { padding: 30px; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .card-header { padding: 20px 24px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 24px; }
+        .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+        .form-group { margin-bottom: 12px; }
+        input[type=text], input[type=email], input[type=date], textarea { width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; }
+        .btn { cursor:pointer; }
+        .btn-primary { background:#1e5ba8; color:#fff; padding:10px 16px; border-radius:8px; border:none; }
+        .btn-secondary { background:#f1f5f9; color:#0f172a; padding:10px 16px; border-radius:8px; border:1px solid #e2e8f0; }
+        .alert { padding:12px 14px; border-radius:8px; margin-bottom:12px; }
+        .alert-success { background:#ecfdf5; color:#065f46; border:1px solid #d1fae5; }
+        .alert-danger { background:#fef2f2; color:#991b1b; border:1px solid #fee2e2; }
+        .profile-view { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:18px; }
+        .profile-view h3 { margin-top:0; text-align:center; }
+        .logo-wrap { text-align:center; margin-bottom:12px; }
+        .kv { display:grid; grid-template-columns: 280px 1fr; align-items:start; gap:8px; margin:8px 0; }
+        .kv .k { color:#64748b; }
+        .kv .v { white-space:pre-line; }
+        .jurusan-item { display:flex; gap:8px; margin-bottom:8px; }
+        .jurusan-item input { flex: 1; }
+        /* Jurusan grid agar nomor sejajar ke atas (kolom berulang) */
+        .jurusan-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:8px 18px; align-items:start; }
+        .jurusan-grid .jur { display:flex; gap:8px; }
+        .jurusan-grid .no { min-width: 22px; text-align:right; }
+    @media print {
+            @page { size: A4 portrait; margin: 10mm; }
+            html, body { background: #fff !important; }
+            body { margin: 0 !important; }
+            .sidebar, .top-bar, .btn, .btn-primary, .btn-secondary, a, .user-info { display: none !important; }
+            .content-area { padding: 0 !important; }
+            .grid-2 { display: block !important; }
+            .card { box-shadow: none !important; border: none !important; margin: 0 0 8px 0 !important; }
+            .card-header { display: none !important; }
+            .card-body { padding: 0 !important; }
+            .profile-view { border: none !important; padding: 0 !important; max-width: 180mm !important; margin: 0 auto !important; }
+            .main-content { margin: 0 !important; }
+            .profile-view, .card, .kv { break-inside: avoid; page-break-inside: avoid; }
+            .logo-wrap { margin-top: 6mm !important; margin-bottom: 6mm !important; text-align: center !important; }
+            .logo-wrap img { max-height: 60px !important; }
+            .profile-view h3 { text-align: center !important; margin-top: 0 !important; margin-bottom: 4mm !important; }
+            .kv { grid-template-columns: 210px 1fr !important; gap: 6px 10px !important; margin: 2px 0 !important; }
+        }
+    </style>
+    <script>
+        function addJurusanRow() {
+            const container = document.getElementById('jurusan-container');
+            const div = document.createElement('div');
+            div.className = 'jurusan-item';
+            div.innerHTML = '<input type="text" name="jurusan[]" placeholder="Nama Jurusan/Konsentrasi">' +
+                            '<button type="button" onclick="this.parentNode.remove()" class="btn btn-secondary">Hapus</button>';
+            container.appendChild(div);
+        }
+    </script>
+</head>
+<body>
+<?php include 'sidebar.php'; ?>
+<div class="main-content">
+    <div class="top-bar">
+        <h1>🏢 Profil Sekolah</h1>
+        <div class="user-info">
+            <span>Admin: <strong><?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?></strong></span>
+            <a href="../logout.php" class="btn-logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header"><h3>Tampilan Profil</h3><div><button class="btn-secondary" onclick="window.print()"><i class="fas fa-print" aria-hidden="true"></i> Print</button> <button class="btn-primary" onclick="document.getElementById('edit-card').style.display='block';window.scrollTo(0,document.body.scrollHeight);"><i class="fas fa-pen" aria-hidden="true"></i> Edit</button></div></div>
+                <div class="card-body">
+                    <?php if ($success): ?><div class="alert alert-success"><i class="fas fa-check-circle" aria-hidden="true"></i> <?php echo $success; ?></div><?php endif; ?>
+                    <?php if ($error): ?><div class="alert alert-danger"><i class="fas fa-times-circle" aria-hidden="true"></i> <?php echo $error; ?></div><?php endif; ?>
+                    <div class="profile-view" style="max-width:920px; margin:0 auto;">
+                        <?php if (!empty($profil['logo'])): ?>
+                            <div class="logo-wrap">
+                                <img src="../<?php echo htmlspecialchars(($profil['logo']) ?? ''); ?>" alt="Logo Sekolah" style="max-height:80px; object-fit:contain; background:#fff; padding:6px; border-radius:8px;">
+                            </div>
+                        <?php endif; ?>
+                        <h3 style="text-align:center;"><?php echo htmlspecialchars(($nama_sekolah) ?? ''); ?></h3>
+                        <div class="kv"><div class="k">Nomer Statistik Sekolah (NSS)</div><div class="v">: <?php echo htmlspecialchars(($extra['nss']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">NPSN</div><div class="v">: <?php echo htmlspecialchars(($npsn) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Status</div><div class="v">: <?php echo htmlspecialchars(($extra['status']) ?? ''); ?></div></div>
+                        <?php
+                        $alamat_text = $extra['alamat_sekolah'];
+                        $kampusA = $kampusB = '';
+                        if (preg_match('/Kampus\s*A\s*:\s*(.+)/i', $alamat_text, $mA)) { $kampusA = trim($mA[1]); }
+                        if (preg_match('/Kampus\s*B\s*:\s*(.+)/i', $alamat_text, $mB)) { $kampusB = trim($mB[1]); }
+                        if ($kampusA !== '' || $kampusB !== ''): ?>
+                            <?php if ($kampusA !== ''): ?><div class="kv"><div class="k">Alamat Kampus A</div><div class="v">: <?php echo htmlspecialchars(($kampusA) ?? ''); ?></div></div><?php endif; ?>
+                            <?php if ($kampusB !== ''): ?><div class="kv"><div class="k">Alamat Kampus B</div><div class="v">: <?php echo htmlspecialchars(($kampusB) ?? ''); ?></div></div><?php endif; ?>
+                        <?php else: ?>
+                            <div class="kv"><div class="k">Alamat Sekolah</div><div class="v">: <?php echo htmlspecialchars(($alamat_text) ?? ''); ?></div></div>
+                        <?php endif; ?>
+                        <div class="kv"><div class="k">Kecamatan</div><div class="v">: <?php echo htmlspecialchars(($extra['kecamatan']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Kabupaten / Kota</div><div class="v">: <?php echo htmlspecialchars(($extra['kota']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Provinsi</div><div class="v">: <?php echo htmlspecialchars(($extra['provinsi']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Kode Pos</div><div class="v">: <?php echo htmlspecialchars(($extra['kode_pos']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Telpon</div><div class="v">: <?php echo htmlspecialchars(($extra['telpon']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">No. SK Pendirian Sekolah</div><div class="v">: <?php echo htmlspecialchars(($extra['sk_pendirian']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Website</div><div class="v">: <?php echo htmlspecialchars(($website) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Email</div><div class="v">: <?php echo htmlspecialchars(($email) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Status Akreditasi</div><div class="v">: <?php echo htmlspecialchars(($extra['status_akreditasi']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Waktu KBM</div><div class="v">: <?php echo htmlspecialchars(($extra['waktu_kbm']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Nama Kepala Sekolah</div><div class="v">: <?php echo htmlspecialchars(($kepala_sekolah) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">No. SK. Kepala Sekolah</div><div class="v">: <?php echo htmlspecialchars(($extra['sk_kepsek_no']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Tanggal SK.</div><div class="v">: <?php echo htmlspecialchars(($extra['sk_kepsek_tanggal']) ?? ''); ?></div></div>
+                        <div class="kv"><div class="k">Jurusan/Kompetensi Keahlian</div><div class="v">:
+                            <?php if (count($jurusan) === 0): ?>
+                                <div style="color:#64748b;">Belum diisi</div>
+                            <?php else: ?>
+                                <div class="jurusan-grid">
+                                    <?php $i=1; foreach ($jurusan as $j): ?>
+                                        <div class="jur"><div class="no"><?php echo $i++; ?>.</div><div><?php echo htmlspecialchars(($j) ?? ''); ?></div></div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="edit-card" style="display:none;">
+                <div class="card-header"><h3>Edit Profil</h3></div>
+                <div class="card-body">
+                    <form method="POST" action="" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label>Nama Sekolah</label>
+                            <input type="text" name="nama_sekolah" value="<?php echo htmlspecialchars(($nama_sekolah) ?? ''); ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nomer Statistik Sekolah (NSS)</label>
+                            <input type="text" name="nss" value="<?php echo htmlspecialchars(($extra['nss']) ?? ''); ?>" placeholder="34206504072">
+                        </div>
+                        <div class="form-group">
+                            <label>NPSN</label>
+                            <input type="text" name="npsn" value="<?php echo htmlspecialchars(($npsn) ?? ''); ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <input type="text" name="status" value="<?php echo htmlspecialchars(($extra['status']) ?? ''); ?>" placeholder="Swasta">
+                        </div>
+                        <div class="form-group">
+                            <label>Alamat Sekolah</label>
+                            <textarea name="alamat_sekolah" placeholder="Contoh: Kampus A: Jalan Anggrek 1 No. 47...&#10;Kampus B: Jalan H. Ujan No. 102..." style="min-height:100px;"><?php echo htmlspecialchars(($extra['alamat_sekolah']) ?? ''); ?></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Kecamatan</label>
+                            <input type="text" name="kecamatan" value="<?php echo htmlspecialchars(($extra['kecamatan']) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Kabupaten / Kota</label>
+                            <input type="text" name="kota" value="<?php echo htmlspecialchars(($extra['kota']) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Provinsi</label>
+                            <input type="text" name="provinsi" value="<?php echo htmlspecialchars(($extra['provinsi']) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Kode Pos</label>
+                            <input type="text" name="kode_pos" value="<?php echo htmlspecialchars(($extra['kode_pos']) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Telpon</label>
+                            <input type="text" name="telpon" value="<?php echo htmlspecialchars(($extra['telpon']) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>No. SK Pendirian Sekolah</label>
+                            <input type="text" name="sk_pendirian" value="<?php echo htmlspecialchars(($extra['sk_pendirian']) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Website</label>
+                            <input type="text" name="website" value="<?php echo htmlspecialchars(($website) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" value="<?php echo htmlspecialchars(($email) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Status Akreditasi</label>
+                            <input type="text" name="status_akreditasi" value="<?php echo htmlspecialchars(($extra['status_akreditasi']) ?? ''); ?>" placeholder="Terakreditasi A (Unggul)">
+                        </div>
+                        <div class="form-group">
+                            <label>Waktu KBM</label>
+                            <input type="text" name="waktu_kbm" value="<?php echo htmlspecialchars(($extra['waktu_kbm']) ?? ''); ?>" placeholder="Pagi">
+                        </div>
+                        <div class="form-group">
+                            <label>Nama Kepala Sekolah</label>
+                            <input type="text" name="kepala_sekolah" value="<?php echo htmlspecialchars(($kepala_sekolah) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>No. SK. Kepala Sekolah</label>
+                            <input type="text" name="sk_kepsek_no" value="<?php echo htmlspecialchars(($extra['sk_kepsek_no']) ?? ''); ?>" placeholder="Skep, 105/YP-TDB/K/VII/2009">
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal SK.</label>
+                            <input type="date" name="sk_kepsek_tanggal" value="<?php echo htmlspecialchars(($extra['sk_kepsek_tanggal']) ?? ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Jurusan/Kompetensi Keahlian</label>
+                            <div id="jurusan-container">
+                                <?php if (count($jurusan) === 0): ?>
+                                    <div class="jurusan-item">
+                                        <input type="text" name="jurusan[]" placeholder="Nama Jurusan/Konsentrasi">
+                                        <button type="button" onclick="this.parentNode.remove()" class="btn btn-secondary">Hapus</button>
+                                    </div>
+                                <?php else: foreach ($jurusan as $j): ?>
+                                    <div class="jurusan-item">
+                                        <input type="text" name="jurusan[]" value="<?php echo htmlspecialchars(($j) ?? ''); ?>" placeholder="Nama Jurusan/Konsentrasi">
+                                        <button type="button" onclick="this.parentNode.remove()" class="btn btn-secondary">Hapus</button>
+                                    </div>
+                                <?php endforeach; endif; ?>
+                            </div>
+                            <button type="button" class="btn btn-secondary" onclick="addJurusanRow()" style="margin-top:8px;">+ Tambah Jurusan</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Logo Sekolah</label>
+                            <input type="file" name="logo" accept="image/*">
+                            <small style="color:#999;">Format: JPG/PNG/WebP, maks 2MB</small>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button type="submit" class="btn btn-primary">Simpan Profil</button>
+                            <a href="profil_sekolah.php" class="btn btn-secondary" title="Reset"><i class="fas fa-eraser" aria-hidden="true"></i></a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>
+
+

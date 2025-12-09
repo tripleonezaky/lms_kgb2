@@ -1,0 +1,243 @@
+﻿<?php
+/**
+ * File: /profile.php
+ * Fitur: Halaman Profil gabungan untuk role Guru dan Siswa
+ * - Edit profil: nama_lengkap, email, no_whatsapp, foto (opsional), sekaligus ubah password dalam satu form (opsional)
+ */
+session_start();
+require_once __DIR__ . '/includes/check_session.php';
+require_once __DIR__ . '/config/database.php';
+
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['guru','siswa'], true)) {
+    header('Location: index.php');
+    exit();
+}
+
+$user_id = (int)$_SESSION['user_id'];
+$role = $_SESSION['role'];
+
+$success = '';
+$error = '';
+
+// Ambil data user
+$res = query("SELECT id, username, nama_lengkap, email, no_whatsapp, foto FROM users WHERE id={$user_id} LIMIT 1");
+$user = $res ? fetch_assoc($res) : null;
+if (!$user) { $error = 'User tidak ditemukan.'; }
+
+// Proses Update Profil
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action']==='update_profile') {
+    $nama = trim($_POST['nama_lengkap'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $wa    = trim($_POST['no_whatsapp'] ?? '');
+
+    if ($nama === '' || $email === '') {
+        $error = 'Nama dan Email wajib diisi';
+    } else {
+        // Cek duplikasi email (kecuali diri sendiri)
+        $email_esc = escape_string($email);
+        $dup = query("SELECT id FROM users WHERE email='{$email_esc}' AND id!={$user_id} LIMIT 1");
+        if ($dup && fetch_assoc($dup)) {
+            $error = 'Email sudah digunakan user lain';
+        } else {
+            $wa_sql = $wa !== '' ? ("'".escape_string($wa)."'") : 'NULL';
+            $upd = query("UPDATE users SET nama_lengkap='".escape_string($nama)."', email='{$email_esc}', no_whatsapp={$wa_sql} WHERE id={$user_id} LIMIT 1");
+
+            // Opsional: ganti password jika field diisi lengkap
+            $old = trim($_POST['old_password'] ?? '');
+            $new = trim($_POST['new_password'] ?? '');
+            $conf= trim($_POST['confirm_password'] ?? '');
+            if ($old !== '' || $new !== '' || $conf !== '') {
+                if ($old === '' || $new === '' || $conf === '') {
+                    $error = 'Semua field password wajib diisi jika ingin mengganti password';
+                } elseif (strlen($new) < 6) {
+                    $error = 'Password baru minimal 6 karakter';
+                } elseif ($new !== $conf) {
+                    $error = 'Konfirmasi password tidak sama';
+                } else {
+                    $resPwd = query("SELECT password FROM users WHERE id={$user_id} LIMIT 1");
+                    $rowPwd = $resPwd ? fetch_assoc($resPwd) : null;
+                    if (!$rowPwd || !password_verify($old, $rowPwd['password'])) {
+                        $error = 'Password lama salah';
+                    } else {
+                        $hash = password_hash($new, PASSWORD_DEFAULT);
+                        query("UPDATE users SET password='".escape_string($hash)."' WHERE id={$user_id} LIMIT 1");
+                    }
+                }
+            }
+
+            // Opsional: proses foto jika diunggah
+            if (!isset($error) || $error==='') {
+                if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+                    $allowed = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
+                    $tmp = $_FILES['foto']['tmp_name'];
+                    $size = (int)$_FILES['foto']['size'];
+                    $type = function_exists('mime_content_type') ? mime_content_type($tmp) : $_FILES['foto']['type'];
+                    if (!isset($allowed[$type])) {
+                        $error = 'Tipe file tidak didukung (JPG/PNG/WebP)';
+                    } elseif ($size > 2*1024*1024) {
+                        $error = 'Ukuran foto maksimal 2MB';
+                    } else {
+                        $ext = $allowed[$type];
+                        $dirPublic = 'assets/uploads/foto_profil';
+                        $base = realpath(__DIR__);
+                        $dirFs = $base . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $dirPublic);
+                        if (!is_dir($dirFs)) { @mkdir($dirFs, 0777, true); }
+                        $fname = 'user-' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $user['username']) . '-' . time() . '.' . $ext;
+                        $destFs = $dirFs . DIRECTORY_SEPARATOR . $fname;
+                        if (@move_uploaded_file($tmp, $destFs)) {
+                            $pathRel = $dirPublic . '/' . $fname;
+                            if (query("UPDATE users SET foto='".escape_string($pathRel)."' WHERE id={$user_id} LIMIT 1")) {
+                                $_SESSION['foto'] = $pathRel;
+                                // refresh user data
+                                $res = query("SELECT id, username, nama_lengkap, email, no_whatsapp, foto FROM users WHERE id={$user_id} LIMIT 1");
+                                $user = $res ? fetch_assoc($res) : $user;
+                            } else {
+                                $error = 'Gagal menyimpan foto.';
+                            }
+                        } else {
+                            $error = 'Gagal mengunggah foto.';
+                        }
+                    }
+                }
+            }
+
+            if (!isset($error) || $error==='') {
+                if ($upd) {
+                    $_SESSION['nama_lengkap'] = $nama;
+                    $_SESSION['email'] = $email;
+                    $_SESSION['no_whatsapp'] = $wa;
+                    $success = 'Profil berhasil diperbarui.';
+                    // refresh user data
+                    $res = query("SELECT id, username, nama_lengkap, email, no_whatsapp, foto FROM users WHERE id={$user_id} LIMIT 1");
+                    $user = $res ? fetch_assoc($res) : $user;
+                } else {
+                    $error = 'Gagal memperbarui profil.';
+                }
+            }
+        }
+    }
+}
+
+
+// Penggantian password digabung ke form edit profil (opsional)
+
+?><!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil Saya - <?php echo htmlspecialchars(strtoupper($role)); ?></title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+body{background:#f5f7fa;font-family:'Poppins',sans-serif}
+.container{max-width:1000px;margin:20px auto;padding:10px}
+.card{background:#fff;border:1px solid #ddd;border-radius:12px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.04);margin-bottom:12px}
+.card-header{padding:16px 20px;background:#f5f5f5;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+.card-body{padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+label{display:block;margin-bottom:6px;font-weight:600}
+input[type=text],input[type=email],input[type=password]{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px}
+.btn{display:inline-block;padding:10px 14px;border-radius:8px;border:1px solid #2c7be5;background:#2c7be5;color:#fff;text-decoration:none;cursor:pointer}
+.btn:hover{filter:brightness(0.95)}
+.alert{padding:10px;border-radius:8px;margin:10px 0}
+.alert-success{background:#e6f4ea;color:#1e7e34}
+.alert-error{background:#fdecea;color:#b00020}
+.avatar{width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb}
+/* Key-value style seperti profil sekolah */
+.kv{display:grid;grid-template-columns:200px auto;gap:8px 12px;align-items:start;margin:6px 0}
+.kv .k{color:#64748b}
+.kv .v{white-space:pre-line}
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">Profil Saya (<?php echo htmlspecialchars(strtoupper($role)); ?>)
+        <div>
+          <?php if ($role==='guru'): ?>
+            <a href="guru/dashboard.php" class="btn" style="background:#64748b;border-color:#64748b">Kembali</a>
+          <?php else: ?>
+            <a href="siswa/dashboard.php" class="btn" style="background:#64748b;border-color:#64748b">Kembali</a>
+          <?php endif; ?>
+        </div>
+      </div>
+      <div class="card-body">
+        <?php if ($success): ?><div class="alert alert-success"><i class="fas fa-check-circle" aria-hidden="true"></i> <?php echo htmlspecialchars($success); ?></div><?php endif; ?>
+        <?php if ($error): ?><div class="alert alert-error"><i class="fas fa-times-circle" aria-hidden="true"></i> <?php echo htmlspecialchars($error); ?></div><?php endif; ?>
+
+        <div class="toolbar" style="margin-bottom:10px; display:flex; gap:8px;">
+          <button type="button" class="btn" onclick="showEdit()">Edit</button>
+        </div>
+
+        <div id="readonlyProfile" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <?php if (!empty($user['foto'])): ?>
+              <img class="avatar" src="<?php echo htmlspecialchars($user['foto']); ?>" alt="Foto Profil" />
+            <?php else: ?>
+              <div class="avatar" style="display:flex;align-items:center;justify-content:center;background:#dde1e7;color:#334155;font-weight:700;font-size:20px;">
+                <?php echo strtoupper(substr($user['nama_lengkap'],0,1)); ?>
+              </div>
+            <?php endif; ?>
+            <div style="flex:1 1 460px">
+              <div class="kv"><div class="k">Username</div><div class="v">: <?php echo htmlspecialchars($user['username']); ?></div></div>
+              <div class="kv"><div class="k">Nama</div><div class="v">: <?php echo htmlspecialchars($user['nama_lengkap']); ?></div></div>
+              <div class="kv"><div class="k">Email</div><div class="v">: <?php echo htmlspecialchars($user['email']); ?></div></div>
+              <div class="kv"><div class="k">No. WhatsApp</div><div class="v">: <?php echo htmlspecialchars($user['no_whatsapp']); ?></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid">
+        <script>
+          function showEdit(){
+            document.getElementById('readonlyProfile').style.display='none';
+                        var ep=document.getElementById('editProfileSection'); if(ep) ep.style.display='block';
+          }
+        </script>
+          <div>
+            <form method="post" enctype="multipart/form-data" id="editProfileSection" style="<?php echo (isset($_POST['action']) && $_POST['action']==='update_profile') ? '' : 'display:none;'; ?>">
+              <input type="hidden" name="action" value="update_profile" />
+              <div style="margin-bottom:10px">
+                <label>Nama Lengkap</label>
+                <input type="text" name="nama_lengkap" value="<?php echo htmlspecialchars($user['nama_lengkap']); ?>" required />
+              </div>
+              <div style="margin-bottom:10px">
+                <label>Email</label>
+                <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required />
+              </div>
+              <div style="margin-bottom:10px">
+                <label>No. WhatsApp</label>
+                <input type="text" name="no_whatsapp" value="<?php echo htmlspecialchars($user['no_whatsapp']); ?>" />
+              </div>
+              <div style="margin-bottom:10px">
+                <label>Foto Profil (opsional)</label>
+                <input type="file" name="foto" accept="image/*" />
+              </div>
+              <hr>
+              <div style="margin:8px 0 10px; color:#64748b;">Ubah Password (opsional): isi jika ingin mengganti password.</div>
+              <div>
+                <div style="margin-bottom:10px">
+                  <label>Password Lama</label>
+                  <input type="password" name="old_password" />
+                </div>
+                <div style="margin-bottom:10px">
+                  <label>Password Baru</label>
+                  <input type="password" name="new_password" minlength="6" />
+                </div>
+                <div style="margin-bottom:10px">
+                  <label>Konfirmasi Password Baru</label>
+                  <input type="password" name="confirm_password" minlength="6" />
+                </div>
+              </div>
+              <button type="submit" class="btn">Simpan</button>
+            </form>
+          </div>
+
+          <div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

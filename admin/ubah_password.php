@@ -1,0 +1,120 @@
+﻿<?php
+/**
+ * File: admin/ubah_password.php
+ * Fitur: Ubah password untuk akun admin yang sedang login
+ */
+session_start();
+require_once '../includes/check_session.php';
+require_once '../includes/check_role.php';
+check_role(['admin']);
+require_once '../config/database.php';
+
+$success = '';
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $password_lama = isset($_POST['password_lama']) ? (string)$_POST['password_lama'] : '';
+    $password_baru = isset($_POST['password_baru']) ? (string)$_POST['password_baru'] : '';
+    $password_konf = isset($_POST['password_konf']) ? (string)$_POST['password_konf'] : '';
+
+    if ($password_lama === '' || $password_baru === '' || $password_konf === '') {
+        $error = 'Semua field wajib diisi!';
+    } elseif ($password_baru !== $password_konf) {
+        $error = 'Konfirmasi password baru tidak sama!';
+    } elseif (strlen($password_baru) < 6) {
+        $error = 'Password baru minimal 6 karakter!';
+    } else {
+        $uid = (int)$_SESSION['user_id'];
+        $q = mysqli_query($conn, "SELECT password FROM users WHERE id = $uid AND role = 'admin' LIMIT 1");
+        if ($q && mysqli_num_rows($q) === 1) {
+            $row = mysqli_fetch_assoc($q);
+            $hash = $row['password'];
+
+            $valid = false;
+            if (preg_match('/^\\$2y\\$/', $hash)) {
+                $valid = password_verify($password_lama, $hash);
+            } else {
+                // fallback md5
+                $valid = (md5($password_lama) === $hash);
+            }
+
+            if (!$valid) {
+                $error = 'Password lama salah!';
+            } else {
+                $newHash = password_hash($password_baru, PASSWORD_DEFAULT);
+                $upd = mysqli_query($conn, "UPDATE users SET password = '" . mysqli_real_escape_string($conn, $newHash) . "' WHERE id = $uid LIMIT 1");
+                if ($upd) {
+                    $success = 'Password berhasil diubah.';
+                } else {
+                    $error = 'Gagal memperbarui password: ' . mysqli_error($conn);
+                }
+            }
+        } else {
+            $error = 'Akun admin tidak ditemukan!';
+        }
+    }
+}
+
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ubah Password - Admin</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/_overrides.css">
+    <style>
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 999; }
+        .content-area { padding: 30px; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .card-header { padding: 20px 24px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 24px; }
+        .form-group { margin-bottom: 14px; }
+        input[type=password] { width: 100%; padding: 10px 12px; border:1px solid #ddd; border-radius:8px; }
+        .btn { cursor:pointer; }
+        .btn-primary { background:#1e5ba8; color:#fff; padding:10px 16px; border-radius:8px; border:none; }
+        .alert { padding:12px 14px; border-radius:8px; margin-bottom:12px; }
+        .alert-success { background:#ecfdf5; color:#065f46; border:1px solid #d1fae5; }
+        .alert-danger { background:#fef2f2; color:#991b1b; border:1px solid #fee2e2; }
+    </style>
+</head>
+<body>
+<?php include 'sidebar.php'; ?>
+<div class="main-content">
+    <div class="top-bar">
+        <h1>🔐 Ubah Password</h1>
+        <div class="user-info">
+            <span>Admin: <strong><?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?></strong></span>
+            <a href="../logout.php" class="btn-logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="card">
+            <div class="card-header"><h3>Form Ubah Password</h3></div>
+            <div class="card-body">
+                <?php if ($success): ?><div class="alert alert-success"><i class="fas fa-check-circle" aria-hidden="true"></i> <?php echo $success; ?></div><?php endif; ?>
+                <?php if ($error): ?><div class="alert alert-danger"><i class="fas fa-times-circle" aria-hidden="true"></i> <?php echo $error; ?></div><?php endif; ?>
+                <form method="POST" action="">
+                    <div class="form-group">
+                        <label>Password Lama</label>
+                        <input type="password" name="password_lama" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password Baru</label>
+                        <input type="password" name="password_baru" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Konfirmasi Password Baru</label>
+                        <input type="password" name="password_konf" minlength="6" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

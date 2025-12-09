@@ -1,0 +1,74 @@
+/* Mobile responsive overrides for LMS KGB2 (applies to all roles/pages)
+   This file is imported by style.css */
+
+/* Tablet and below */
+@media (max-width: 768px) {
+  html, body { font-size: 15px; line-height: 1.5; }
+  /* Layout */
+  .sidebar { width: 0 !important; overflow: hidden; }
+  .sidebar.active { width: 260px !important; }
+  .main-content { margin-left: 0 !important; }
+  .top-bar { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px; }
+  .top-bar h1 { font-size: 18px; }
+  .user-info { gap: 10px; }
+  .content-area { padding: 16px; }
+  .card-body { padding: 14px; }
+  .card-header { padding: 12px 14px; }
+  /* UI elements */
+  .btn { padding: 8px 12px; font-size: 14px; }
+  table th, table td { padding: 10px 12px; }
+  .table-container, .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .dashboard-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .shortcut-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .modal-content { width: 94% !important; }
+  /* Generic headings */
+  h1 { font-size: 22px; }
+  h2 { font-size: 18px; }
+  h3 { font-size: 16px; }
+  /* Forms */
+  .form-control { font-size: 14px; padding: 10px 12px; }
+}
+
+/* Phones (<= 576px) */
+@media (max-width: 576px) {
+  html, body { font-size: 14px; }
+  .top-bar { padding: 12px; }
+  .top-bar h1 { font-size: 16px; }
+  .btn { padding: 7px 10px; font-size: 13px; }
+  .card-header h3 { font-size: 15px; }
+  table th { font-size: 11px; }
+  table td { font-size: 12.5px; }
+  .sidebar.active { width: 240px !important; }
+  /* Make login and generic containers breath better on mobile */
+  .login-container, .container { padding-left: 12px; padding-right: 12px; }
+  .login-title, .site-title, .brand-title, .page-title { font-size: 20px; line-height: 1.25; }
+}
+
+/* Improvements for responsive tables and action buttons
+   - Keeps horizontal scroll where needed
+   - Stacks table rows on very small screens and shows data-labels
+   - Makes action buttons compact and consistent across pages
+*/
+
+/* Ensure scroll wrappers behave consistently */
+.table-responsive, .scroll-x, .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+.table .actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+.table .actions .btn { padding:6px 8px; font-size:14px; min-width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; }
+
+@media (max-width: 576px) {
+  /* Make tables responsive by stacking rows; rely on data-label attributes already present in many templates */
+  .table thead { display: none; }
+  .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+  .table tr { margin-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .table td { padding: 8px 10px; border: 0; white-space: normal; }
+  .table td[data-label]:before { content: attr(data-label) ": "; font-weight: 600; display: inline-block; width: 120px; }
+
+  /* Compact action buttons for mobile */
+  .table .actions { justify-content:flex-start; gap:6px; }
+  .table .actions .btn { width:36px; height:36px; padding:6px; }
+
+  /* Utility helpers */
+  .hide-on-mobile { display: none !important; }
+  .show-on-mobile { display: inline-flex !important; }
+}

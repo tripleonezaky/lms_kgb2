@@ -1,0 +1,177 @@
+﻿<?php
+/**
+ * File: admin/laporan_assignment.php
+ * Fitur: Laporan assignment (penugasan mengajar) berdasarkan guru/kelas/mapel/tahun ajaran
+ * Ekspor: CSV dan Cetak
+ */
+session_start();
+require_once '../includes/check_session.php';
+require_once '../includes/check_role.php';
+check_role(['admin']);
+require_once '../config/database.php';
+
+$guru_id = isset($_GET['guru_id']) ? (int)$_GET['guru_id'] : 0;
+$kelas_id = isset($_GET['kelas_id']) ? (int)$_GET['kelas_id'] : 0;
+$mapel_id = isset($_GET['mapel_id']) ? (int)$_GET['mapel_id'] : 0;
+$tahun_ajaran_id = isset($_GET['tahun_ajaran_id']) ? (int)$_GET['tahun_ajaran_id'] : 0;
+
+// Dropdown data
+$guru_opts = [];
+$rg = mysqli_query($conn, "SELECT id, nama_lengkap, username FROM users WHERE role='guru' ORDER BY nama_lengkap");
+if ($rg) { while ($g = mysqli_fetch_assoc($rg)) { $guru_opts[] = $g; } }
+$kelas_opts = [];
+$rk = mysqli_query($conn, "SELECT id, nama_kelas FROM kelas ORDER BY nama_kelas");
+if ($rk) { while ($k = mysqli_fetch_assoc($rk)) { $kelas_opts[] = $k; } }
+$mapel_opts = [];
+$rm = mysqli_query($conn, "SELECT id, nama_mapel FROM mata_pelajaran ORDER BY nama_mapel");
+if ($rm) { while ($m = mysqli_fetch_assoc($rm)) { $mapel_opts[] = $m; } }
+$ta_opts = [];
+$rta = mysqli_query($conn, "SELECT id, nama_tahun_ajaran, is_active FROM tahun_ajaran ORDER BY is_active DESC, id DESC");
+if ($rta) { while ($ta = mysqli_fetch_assoc($rta)) { $ta_opts[] = $ta; } }
+
+$where = 'WHERE 1=1';
+if ($guru_id > 0) $where .= " AND a.guru_id = $guru_id";
+if ($kelas_id > 0) $where .= " AND a.kelas_id = $kelas_id";
+if ($mapel_id > 0) $where .= " AND a.mapel_id = $mapel_id";
+if ($tahun_ajaran_id > 0) $where .= " AND a.tahun_ajaran_id = $tahun_ajaran_id";
+
+$sql = "SELECT a.id, a.guru_id, a.mapel_id, a.kelas_id, a.tahun_ajaran_id,
+               g.nama_lengkap AS nama_guru, g.username AS kode_guru,
+               m.nama_mapel, k.nama_kelas, ta.nama_tahun_ajaran
+        FROM assignment_guru a
+        JOIN users g ON g.id = a.guru_id
+        JOIN mata_pelajaran m ON m.id = a.mapel_id
+        JOIN kelas k ON k.id = a.kelas_id
+        JOIN tahun_ajaran ta ON ta.id = a.tahun_ajaran_id
+        $where
+        ORDER BY ta.id DESC, g.nama_lengkap, k.nama_kelas, m.nama_mapel";
+$res = mysqli_query($conn, $sql);
+$rows = [];
+if ($res) { while ($r = mysqli_fetch_assoc($res)) { $rows[] = $r; } }
+
+if (isset($_GET['export']) && (int)$_GET['export'] === 1) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=laporan_assignment.csv');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['No','Tahun Ajaran','Guru','Kode Guru','Kelas','Mapel']);
+    $no = 1;
+    foreach ($rows as $r) {
+        fputcsv($out, [ $no++, $r['nama_tahun_ajaran'], $r['nama_guru'], $r['kode_guru'], $r['nama_kelas'], $r['nama_mapel'] ]);
+    }
+    fclose($out);
+    exit();
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Assignment - Admin</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/_overrides.css">
+    <style>
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 999; }
+        .content-area { padding: 30px; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .card-header { padding: 20px 24px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 24px; }
+        .filters { display:flex; gap:10px; flex-wrap:wrap; }
+        select { padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; }
+        .btn { cursor:pointer; }
+        .btn-primary { background:#1e5ba8; color:#fff; padding:8px 14px; border-radius:8px; border:none; }
+        .btn-secondary { background:#f1f5f9; color:#0f172a; padding:8px 14px; border-radius:8px; border:1px solid #e2e8f0; }
+        .btn-outline { background:#fff; color:#0f172a; padding:8px 12px; border-radius:8px; border:1px solid #cbd5e1; }
+        .table-container { overflow:auto; }
+        table { width:100%; border-collapse: collapse; }
+        th, td { border-bottom:1px solid #eee; padding:10px; text-align:left; }
+        th { background:#f8fafc; }
+        .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    </style>
+</head>
+<body>
+<?php include 'sidebar.php'; ?>
+<div class="main-content">
+    <div class="top-bar">
+        <h1>📋 Laporan Assignment</h1>
+        <div class="user-info">
+            <span>Admin: <strong><?php echo htmlspecialchars($_SESSION['nama_lengkap']); ?></strong></span>
+            <a href="../logout.php" class="btn-logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="card">
+            <div class="card-header">
+                <h3>Filter</h3>
+                <div class="toolbar">
+                    <a class="btn btn-outline" href="?guru_id=<?php echo $guru_id; ?>&kelas_id=<?php echo $kelas_id; ?>&mapel_id=<?php echo $mapel_id; ?>&tahun_ajaran_id=<?php echo $tahun_ajaran_id; ?>&export=1">⬇️ Export CSV</a>
+                    <button class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print" aria-hidden="true"></i> Cetak</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="filters" action="">
+                    <select name="tahun_ajaran_id">
+                        <option value="0">Semua Tahun Ajaran</option>
+                        <?php foreach ($ta_opts as $ta): ?>
+                            <option value="<?php echo $ta['id']; ?>" <?php echo ($tahun_ajaran_id==(int)$ta['id'])?'selected':''; ?>><?php echo htmlspecialchars($ta['nama_tahun_ajaran']); ?><?php echo (int)$ta['is_active']===1?' (Aktif)':''; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="guru_id">
+                        <option value="0">Semua Guru</option>
+                        <?php foreach ($guru_opts as $g): ?>
+                            <option value="<?php echo $g['id']; ?>" <?php echo ($guru_id==(int)$g['id'])?'selected':''; ?>><?php echo htmlspecialchars($g['nama_lengkap']); ?> (<?php echo htmlspecialchars($g['username']); ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="kelas_id">
+                        <option value="0">Semua Kelas</option>
+                        <?php foreach ($kelas_opts as $k): ?>
+                            <option value="<?php echo $k['id']; ?>" <?php echo ($kelas_id==(int)$k['id'])?'selected':''; ?>><?php echo htmlspecialchars($k['nama_kelas']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="mapel_id">
+                        <option value="0">Semua Mapel</option>
+                        <?php foreach ($mapel_opts as $m): ?>
+                            <option value="<?php echo $m['id']; ?>" <?php echo ($mapel_id==(int)$m['id'])?'selected':''; ?>><?php echo htmlspecialchars($m['nama_mapel']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Terapkan</button>
+                    <?php if ($guru_id || $kelas_id || $mapel_id || $tahun_ajaran_id): ?><a href="laporan_assignment.php" class="btn btn-secondary" title="Reset"><i class="fas fa-eraser" aria-hidden="true"></i></a><?php endif; ?>
+                </form>
+
+                <div class="table-container" style="margin-top:12px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Tahun Ajaran</th>
+                                <th>Guru</th>
+                                <th>Kode Guru</th>
+                                <th>Kelas</th>
+                                <th>Mapel</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (count($rows) === 0): ?>
+                                <tr><td colspan="6" style="text-align:center; padding:18px; color:#64748b;">Tidak ada data</td></tr>
+                            <?php else: $no=1; foreach ($rows as $r): ?>
+                                <tr>
+                                    <td><?php echo $no++; ?></td>
+                                    <td><?php echo htmlspecialchars($r['nama_tahun_ajaran']); ?></td>
+                                    <td><strong><?php echo htmlspecialchars($r['nama_guru']); ?></strong></td>
+                                    <td><?php echo htmlspecialchars($r['kode_guru']); ?></td>
+                                    <td><?php echo htmlspecialchars($r['nama_kelas']); ?></td>
+                                    <td><?php echo htmlspecialchars($r['nama_mapel']); ?></td>
+                                </tr>
+                            <?php endforeach; endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

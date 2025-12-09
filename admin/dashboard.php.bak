@@ -1,0 +1,538 @@
+﻿<?php
+/**
+ * File: admin/dashboard.php
+ * Fungsi: Dashboard Admin dengan Statistik Lengkap
+ */
+
+
+// Proteksi sesi dan role
+require_once __DIR__ . '/../includes/auth_admin.php';
+
+// Include database
+require_once '../config/database.php';
+
+// =============================================
+// AMBIL TAHUN AJARAN AKTIF
+// =============================================
+$ta_aktif = null;
+$query_ta_aktif = "SELECT id, nama_tahun_ajaran, semester FROM tahun_ajaran WHERE is_active = 1 LIMIT 1";
+$result_ta_aktif = mysqli_query($conn, $query_ta_aktif);
+
+if($result_ta_aktif && mysqli_num_rows($result_ta_aktif) > 0) {
+    $ta_aktif = mysqli_fetch_assoc($result_ta_aktif);
+}
+
+// =============================================
+// STATISTIK OVERVIEW
+// =============================================
+
+// Total Guru Aktif
+$query_total_guru = "SELECT COUNT(*) as total FROM users WHERE role = 'guru' AND is_active = 1";
+$result_total_guru = mysqli_query($conn, $query_total_guru);
+$total_guru = $result_total_guru ? mysqli_fetch_assoc($result_total_guru)['total'] : 0;
+
+// Total Siswa Aktif
+$query_total_siswa = "SELECT COUNT(*) as total FROM users WHERE role = 'siswa' AND is_active = 1";
+$result_total_siswa = mysqli_query($conn, $query_total_siswa);
+$total_siswa = $result_total_siswa ? mysqli_fetch_assoc($result_total_siswa)['total'] : 0;
+
+// Total Kelas (skema saat ini tidak memiliki tahun_ajaran_id pada tabel kelas)
+$query_total_kelas = "SELECT COUNT(*) as total FROM kelas";
+$result_total_kelas = mysqli_query($conn, $query_total_kelas);
+$total_kelas = $result_total_kelas ? mysqli_fetch_assoc($result_total_kelas)['total'] : 0;
+
+// Total Mata Pelajaran
+$query_total_mapel = "SELECT COUNT(*) as total FROM mata_pelajaran";
+$result_total_mapel = mysqli_query($conn, $query_total_mapel);
+$total_mapel = $result_total_mapel ? mysqli_fetch_assoc($result_total_mapel)['total'] : 0;
+
+// Total Assignment (Tahun Ajaran Aktif)
+if($ta_aktif) {
+    $query_total_assignment = "SELECT COUNT(*) as total FROM assignment_guru WHERE tahun_ajaran_id = " . $ta_aktif['id'];
+} else {
+    $query_total_assignment = "SELECT COUNT(*) as total FROM assignment_guru";
+}
+$result_total_assignment = mysqli_query($conn, $query_total_assignment);
+$total_assignment = $result_total_assignment ? mysqli_fetch_assoc($result_total_assignment)['total'] : 0;
+
+// Total Jurusan
+$query_total_jurusan = "SELECT COUNT(*) as total FROM jurusan";
+$result_total_jurusan = mysqli_query($conn, $query_total_jurusan);
+$total_jurusan = $result_total_jurusan ? mysqli_fetch_assoc($result_total_jurusan)['total'] : 0;
+
+// =============================================
+// STATISTIK DETAIL
+// =============================================
+
+// Distribusi Siswa per Kelas
+$query_siswa_per_kelas = "
+    SELECT 
+        k.nama_kelas,
+        COUNT(u.id) as jumlah_siswa
+    FROM kelas k
+    LEFT JOIN users u ON k.id = u.kelas_id AND u.role = 'siswa' AND u.is_active = 1
+    GROUP BY k.id, k.nama_kelas
+    ORDER BY k.nama_kelas
+    LIMIT 10
+";
+$result_siswa_per_kelas = mysqli_query($conn, $query_siswa_per_kelas);
+
+// Distribusi Siswa per Jurusan (join via kelas)
+$query_siswa_per_jurusan = "
+    SELECT 
+        j.nama_jurusan,
+        j.singkatan,
+        COUNT(u.id) as jumlah_siswa
+    FROM jurusan j
+    LEFT JOIN kelas k ON k.jurusan_id = j.id
+    LEFT JOIN users u ON u.kelas_id = k.id AND u.role = 'siswa' AND u.is_active = 1
+    GROUP BY j.id, j.nama_jurusan, j.singkatan
+    ORDER BY jumlah_siswa DESC
+";
+$result_siswa_per_jurusan = mysqli_query($conn, $query_siswa_per_jurusan);
+
+// Guru dengan Assignment Terbanyak (gunakan NUPTK sesuai skema)
+$query_guru_top = "
+    SELECT 
+        u.nama_lengkap,
+        u.nuptk,
+        COUNT(ag.id) as total_assignment
+    FROM users u
+    LEFT JOIN assignment_guru ag ON u.id = ag.guru_id
+    WHERE u.role = 'guru' AND u.is_active = 1
+    GROUP BY u.id, u.nama_lengkap, u.nuptk
+    ORDER BY total_assignment DESC
+    LIMIT 5
+";
+$result_guru_top = mysqli_query($conn, $query_guru_top);
+
+?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - LMS KGB2</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        }
+        
+        .stat-card.blue {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .stat-card.green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .stat-card.orange {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .stat-card.purple {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .stat-card.red {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .stat-card.teal {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        }
+        
+        .stat-card .stat-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 8px 0 4px 0;
+            color: #1565c0;
+        }
+        
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: #1976d2;
+            font-weight: 500;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .chart-bar {
+            margin-bottom: 15px;
+        }
+        
+        .chart-bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .chart-bar-outer {
+            background: #f0f0f0;
+            border-radius: 10px;
+            height: 25px;
+            overflow: hidden;
+        }
+        
+        .chart-bar-inner {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .shortcut-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+        
+        .shortcut-item {
+            background: white;
+            padding: 18px;
+            border-radius: 6px;
+            text-align: center;
+            text-decoration: none;
+            color: #2c3e50;
+            border: 1px solid #dee2e6;
+            transition: all 0.2s ease;
+        }
+        
+        .shortcut-item:hover {
+            border-color: #1e88e5;
+            box-shadow: 0 2px 6px rgba(30, 136, 229, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .shortcut-item .icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        .shortcut-item .label {
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #ff6b6b;
+        }
+        
+        .info-box h3 {
+            margin-top: 0;
+            color: #c92a2a;
+        }
+    </style>
+</head>
+<body>
+    
+    <?php include 'sidebar.php'; ?>
+    
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <h1><i class="fas fa-tachometer-alt" aria-hidden="true"></i> Dashboard Admin</h1>
+            <div class="user-info">
+                <span>Admin: <strong><?php echo htmlspecialchars($_SESSION['nama_lengkap']); ?></strong></span>
+                <a href="../logout.php" class="btn-logout">Logout</a>
+            </div>
+        </div>
+        
+        <!-- Content Area -->
+        <div class="content-area">
+            
+            <!-- Info Tahun Ajaran Aktif -->
+            <?php if($ta_aktif): ?>
+            <div class="info-box">
+                <h3><i class="fas fa-calendar" aria-hidden="true"></i> Tahun Ajaran Aktif</h3>
+                <p style="margin: 0; font-size: 18px;">
+                    <strong><?php echo htmlspecialchars($ta_aktif['nama_tahun_ajaran']); ?></strong> - 
+                    Semester <?php echo $ta_aktif['semester']; ?>
+                </p>
+            </div>
+            <?php else: ?>
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> <strong>Perhatian:</strong> Belum ada tahun ajaran yang diaktifkan! Silakan aktifkan tahun ajaran terlebih dahulu.
+            </div>
+            <?php endif; ?>
+            
+            <!-- Statistik Overview -->
+            <div class="dashboard-grid">
+                <div class="stat-card whiet">
+                    <div class="stat-icon"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i></div>
+                    <div class="stat-number"><?php echo number_format($total_guru); ?></div>
+                    <div class="stat-label">Guru Aktif</div>
+                </div>
+                
+                <div class="stat-card white">
+                    <div class="stat-icon"><i class="fas fa-user-graduate" aria-hidden="true"></i></div>
+                    <div class="stat-number"><?php echo number_format($total_siswa); ?></div>
+                    <div class="stat-label">Siswa Aktif</div>
+                </div>
+                
+                <div class="stat-card white">
+                    <div class="stat-icon"><i class="fas fa-users" aria-hidden="true"></i></div>
+                    <div class="stat-number"><?php echo number_format($total_kelas); ?></div>
+                    <div class="stat-label">Total Kelas</div>
+                </div>
+                
+                <div class="stat-card white">
+                    <div class="stat-icon"><i class="fas fa-book" aria-hidden="true"></i></div>
+                    <div class="stat-number"><?php echo number_format($total_mapel); ?></div>
+                    <div class="stat-label">Mata Pelajaran</div>
+                </div>
+                
+                <div class="stat-card white">
+                    <div class="stat-icon"><i class="fas fa-file-alt" aria-hidden="true"></i></div>
+                    <div class="stat-number"><?php echo number_format($total_assignment); ?></div>
+                    <div class="stat-label">Assignment Guru</div>
+                </div>
+                
+                <div class="stat-card white">
+                    <div class="stat-icon"><i class="fas fa-sitemap" aria-hidden="true"></i></div>
+                    <div class="stat-number"><?php echo number_format($total_jurusan); ?></div>
+                    <div class="stat-label">Total Jurusan</div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+                
+                <!-- Distribusi Siswa per Kelas -->
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-bar" aria-hidden="true"></i> Distribusi Siswa per Kelas</h3>
+                    <?php 
+                    if($result_siswa_per_kelas && mysqli_num_rows($result_siswa_per_kelas) > 0) {
+                        // Cari max untuk percentage calculation
+                        $max_siswa = 0;
+                        $data_kelas = [];
+                        while($row = mysqli_fetch_assoc($result_siswa_per_kelas)) {
+                            $data_kelas[] = $row;
+                            if($row['jumlah_siswa'] > $max_siswa) {
+                                $max_siswa = $row['jumlah_siswa'];
+                            }
+                        }
+                        
+                        foreach($data_kelas as $row) {
+                            $percentage = $max_siswa > 0 ? ($row['jumlah_siswa'] / $max_siswa) * 100 : 0;
+                    ?>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">
+                            <span><strong><?php echo htmlspecialchars($row['nama_kelas']); ?></strong></span>
+                            <span><?php echo number_format($row['jumlah_siswa']); ?> siswa</span>
+                        </div>
+                        <div class="chart-bar-outer">
+                            <div class="chart-bar-inner" style="width: <?php echo $percentage; ?>%;">
+                                <?php if($percentage > 15): ?>
+                                    <?php echo number_format($row['jumlah_siswa']); ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php 
+                        }
+                    } else {
+                        echo '<p style="text-align: center; color: #999;">Belum ada data kelas</p>';
+                    }
+                    ?>
+                </div>
+                
+                <!-- Distribusi Siswa per Jurusan -->
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-bar" aria-hidden="true"></i> Distribusi Siswa per Jurusan</h3>
+                    <?php 
+                    if($result_siswa_per_jurusan && mysqli_num_rows($result_siswa_per_jurusan) > 0) {
+                        // Cari max untuk percentage calculation
+                        $max_siswa_jur = 0;
+                        $data_jurusan = [];
+                        while($row = mysqli_fetch_assoc($result_siswa_per_jurusan)) {
+                            $data_jurusan[] = $row;
+                            if($row['jumlah_siswa'] > $max_siswa_jur) {
+                                $max_siswa_jur = $row['jumlah_siswa'];
+                            }
+                        }
+                        
+                        foreach($data_jurusan as $row) {
+                            $percentage = $max_siswa_jur > 0 ? ($row['jumlah_siswa'] / $max_siswa_jur) * 100 : 0;
+                    ?>
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">
+                            <span><strong><?php echo htmlspecialchars($row['singkatan']); ?></strong> - <?php echo htmlspecialchars($row['nama_jurusan']); ?></span>
+                            <span><?php echo number_format($row['jumlah_siswa']); ?> siswa</span>
+                        </div>
+                        <div class="chart-bar-outer">
+                            <div class="chart-bar-inner" style="width: <?php echo $percentage; ?>%;">
+                                <?php if($percentage > 15): ?>
+                                    <?php echo number_format($row['jumlah_siswa']); ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php 
+                        }
+                    } else {
+                        echo '<p style="text-align: center; color: #999;">Belum ada data jurusan</p>';
+                    }
+                    ?>
+                </div>
+                
+            </div>
+            
+            <!-- Top Guru -->
+            <div class="chart-container">
+                <h3><i class="fas fa-award" aria-hidden="true"></i> Top 5 Guru dengan Assignment Terbanyak</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ranking</th>
+                                <th>Nama Guru</th>
+                                <th>NUPTK</th>
+                                <th>Total Assignment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            if($result_guru_top && mysqli_num_rows($result_guru_top) > 0) {
+                                $rank = 1;
+                                while($row = mysqli_fetch_assoc($result_guru_top)) {
+                            ?>
+                            <tr>
+                                <td>
+                                    <?php 
+                                    if($rank == 1) echo '<i class="fas fa-award" aria-hidden="true"></i>';
+                                    elseif($rank == 2) echo '<i class="fas fa-medal" aria-hidden="true"></i>';
+                                    elseif($rank == 3) echo '<i class="fas fa-trophy" aria-hidden="true"></i>';
+                                    else echo $rank;
+                                    ?>
+                                </td>
+                                <td><strong><?php echo htmlspecialchars($row['nama_lengkap']); ?></strong></td>
+                                <td><span class="badge badge-info"><?php echo htmlspecialchars($row['nuptk']); ?></span></td>
+                                <td><?php echo number_format($row['total_assignment']); ?> Assignment</td>
+                            </tr>
+                            <?php 
+                                    $rank++;
+                                }
+                            } else {
+                            ?>
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: #999;">Belum ada data guru</td>
+                            </tr>
+                            <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Shortcut Menu -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-bolt" aria-hidden="true"></i> Quick Access Menu</h3>
+                </div>
+                <div class="shortcut-grid" style="padding: 20px;">
+                    <a href="kelola_tahun_ajaran.php" class="shortcut-item">
+                        <div class="icon"><i class="fas fa-calendar" aria-hidden="true"></i></div>
+                        <div class="label">Tahun Ajaran</div>
+                    </a>
+                    
+                    <a href="kelola_jurusan.php" class="shortcut-item">
+                        <div class="icon"><i class="fas fa-sitemap" aria-hidden="true"></i></div>
+                        <div class="label">Jurusan</div>
+                    </a>
+                    
+                    <a href="kelola_kelas.php" class="shortcut-item">
+                        <div class="icon"><i class="fas fa-users" aria-hidden="true"></i></div>
+                        <div class="label">Kelas</div>
+                    </a>
+                    
+                    <a href="kelola_mapel.php" class="shortcut-item">
+                        <div class="icon"><i class="fas fa-book" aria-hidden="true"></i></div>
+                        <div class="label">Mata Pelajaran</div>
+                    </a>
+                    
+                    <a href="kelola_guru.php" class="shortcut-item">
+                        <div class="icon"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i></div>
+                        <div class="label">Kelola Guru</div>
+                    </a>
+                    
+                    <a href="kelola_siswa.php" class="shortcut-item">
+                        <div class="icon"><i class="fas fa-user-graduate" aria-hidden="true"></i></div>
+                        <div class="label">Kelola Siswa</div>
+                    </a>
+                    
+                    <a href="assignment_guru.php" class="shortcut-item">
+                        <div class="icon"><i class="fas fa-file-alt" aria-hidden="true"></i></div>
+                        <div class="label">Assignment Guru</div>
+                    </a>
+                    
+                    <a href="../logout.php" class="shortcut-item" style="border-color: #ff6b6b;">
+                        <div class="icon"><i class="fas fa-sign-out-alt" aria-hidden="true"></i></div>
+                        <div class="label">Logout</div>
+                    </a>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <script src="../assets/js/script.js"></script>
+    <script>
+        // Auto refresh setiap 5 menit untuk update statistik
+        setTimeout(function() {
+            location.reload();
+        }, 300000); // 5 menit
+    </script>
+</body>
+</html>

@@ -1,0 +1,568 @@
+/* =============================================
+   LMS KGB2 - SIMPLE & ELEGANT (Unified)
+   Warna utama: Biru #1976d2, Oranye #ff6f00
+   Catatan: Aturan responsif mobile disatukan di file ini untuk semua role
+   ============================================= */
+
+   /* Load Font Awesome for consistent icons across roles */
+   @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+/* Reset & Base */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f7fa;
+  color: #2c3e50;
+}
+
+/* Improve mobile text scaling and avoid unexpected zooming */
+html, body { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+
+/* =============================================
+   LAYOUT: SIDEBAR
+   ============================================= */
+.sidebar {
+  width: 280px;
+  height: 100vh;
+  background: #124f85;
+  position: fixed;
+  left: 0;
+  top: 0;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  overflow-y: auto;
+  z-index: 1000;
+}
+.sidebar-header {
+  padding: 30px 20px;
+  background: rgba(0,0,0,0.08);
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.sidebar-header h2 { color: #fff; font-size: 22px; font-weight: 600; margin: 0; }
+.sidebar-header p { color: rgba(255,255,255,0.85); font-size: 12px; margin-top: 5px; }
+
+.sidebar-menu { padding: 15px 0; }
+.menu-section { margin-bottom: 15px; }
+.menu-section-title {
+  color: rgba(255,255,255,0.5);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 20px 5px 20px;
+  font-weight: 600;
+}
+.sidebar-menu a {
+  display: flex;
+  align-items: center;
+  padding: 11px 20px;
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.sidebar-menu a:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.sidebar-menu a.active {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  border-left: 3px solid #ff6f00;
+  font-weight: 500;
+}
+.sidebar-menu a span { margin-right: 10px; font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
+
+.sidebar-footer { padding: 20px; background: rgba(0,0,0,0.1); border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; }
+
+/* =============================================
+   LAYOUT: MAIN CONTENT + TOP BAR
+   ============================================= */
+.main-content { margin-left: 280px; min-height: 100vh; }
+.top-bar {
+  background: #fff;
+  padding: 18px 30px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.top-bar h1 { font-size: 22px; color: #2c3e50; font-weight: 600; margin: 0; }
+.user-info { display: flex; align-items: center; gap: 15px; }
+.user-info span { color: #7f8c8d; font-size: 13px; }
+.btn-logout {
+  background: #e74c3c; color: #fff;
+  padding: 7px 16px; border-radius: 5px; text-decoration: none;
+  font-size: 13px; transition: all 0.2s ease; font-weight: 500;
+}
+.btn-logout:hover { background: #c0392b; }
+
+/* =============================================
+   CONTENT AREA & CARDS
+   ============================================= */
+.content-area { padding: 25px 30px; }
+.card {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.card-header { background: #fff; color: #2c3e50; padding: 18px 22px; border-bottom: 2px solid #e9ecef; }
+.card-header h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.card-body { padding: 22px; }
+
+/* =============================================
+    WINDOWS 11-LIKE ICONS (Admin sidebar & dashboard)
+    - Rounded square tiles, soft gradient, subtle shadow
+    - Use modifier classes for color variants: .win11-blue/.win11-green/etc.
+    ============================================= */
+.win11-icon {
+   display: inline-grid;
+   align-items: center;
+   justify-items: center;
+   width: 40px;
+   height: 40px;
+   border-radius: 50%;
+   background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+   box-shadow: 0 6px 14px rgba(16,24,40,0.06), inset 0 1px 0 rgba(255,255,255,0.05);
+   color: #fff;
+   font-size: 18px;
+   flex-shrink: 0;
+}
+.win11-icon i { font-size: 18px; color: #fff; }
+/* Windows-like pastel backgrounds (tile) with white glyph */
+.win11-blue { background: linear-gradient(180deg,#e7f0ff 0%,#dce9ff 100%); }
+.win11-blue i { color: #0f4bd6; }
+.win11-teal { background: linear-gradient(180deg,#e8f9f4 0%,#dff3ec 100%); }
+.win11-teal i { color: #0b8f77; }
+.win11-green { background: linear-gradient(180deg,#e9faf0 0%,#def6e6 100%); }
+.win11-green i { color: #0f9d4a; }
+.win11-orange { background: linear-gradient(180deg,#fff4ea 0%,#fff0df 100%); }
+.win11-orange i { color: #d46a00; }
+.win11-red { background: linear-gradient(180deg,#fff0f0 0%,#ffecec 100%); }
+.win11-red i { color: #d2323a; }
+.win11-purple { background: linear-gradient(180deg,#f3eafb 0%,#efdeff 100%); }
+.win11-purple i { color: #6b2fb3; }
+.win11-gray { background: linear-gradient(180deg,#f3f4f6 0%,#eef0f2 100%); }
+.win11-gray i { color: #6c7a86; }
+
+.menu-item .win11-icon { margin-right: 10px; width: 32px; height: 32px; }
+.menu-item .win11-icon i { font-size: 14px; }
+.stat-card .win11-icon { width: 56px; height: 56px; border-radius: 50%; font-size: 22px; margin: 0 auto 8px auto; }
+.shortcut-item .win11-icon { display:block; margin: 0 auto 10px auto; width: 56px; height:56px; border-radius: 50%; }
+
+/* =============================================
+   BUTTONS
+   ============================================= */
+.btn { padding: 9px 18px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; transition: all 0.2s ease; font-weight: 500; }
+.btn-primary { background: #1976d2; color: #fff; }
+.btn-primary:hover { background: #1565c0; }
+.btn-success { background: #ff6f00; color: #fff; }
+.btn-success:hover { background: #f57c00; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-danger:hover { background: #c0392b; }
+.btn-warning { background: #f39c12; color: #fff; }
+.btn-warning:hover { background: #e67e22; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* =============================================
+   TABLES
+   ============================================= */
+.table-container { overflow-x: auto; }
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ensure table containers on mobile have smooth touch scrolling */
+.table-container { -webkit-overflow-scrolling: touch; }
+
+/* Prevent images and wide elements from forcing desktop width */
+img, .card, .slide img { max-width: 100%; height: auto; }
+
+table { width: 100%; border-collapse: collapse; }
+table thead { background: #f8f9fa; color: #2c3e50; }
+table th { padding: 13px 15px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #495057; }
+table tbody tr { border-bottom: 1px solid #e9ecef; transition: background 0.15s ease; }
+table tbody tr:hover { background: #f8f9fa; }
+table td { padding: 13px 15px; font-size: 13px; }
+
+/* Builder table: fixed layout so long question text wraps properly and action icons stay aligned */
+.table.builder { table-layout: fixed; }
+.table.builder th, .table.builder td { vertical-align: middle; }
+.table.builder td:nth-child(4) { /* question column */
+   white-space: normal; /* allow wrapping */
+   word-break: break-word;
+   overflow-wrap: anywhere;
+}
+.table.builder td.actions { display:flex; align-items:center; justify-content:flex-end; }
+.table.builder td.actions .btn { margin:0 6px; }
+
+/* Make action columns consistent across all tables (align icons and clickable boxes) */
+.table .actions { display:flex; gap:6px; align-items:center; justify-content:flex-end; }
+.table .actions .btn {
+   display: block;
+   width: 36px;
+   height: 36px;
+   padding: 0;
+   margin: 6px 0;
+   border-radius: 8px;
+   text-indent: -9999px;
+   overflow: hidden;
+   position: relative;
+   background: transparent !important;
+   border: none !important;
+   box-shadow: none !important;
+}
+.table .actions .btn::before { inset: 0; display: grid; place-items: center; width: 100%; height: 100%; background-repeat: no-repeat; background-position: center; background-size: 18px 18px; content: '';} 
+
+/* Generic icon-only action buttons (apply site-wide for action controls) */
+.icon-btn, .action-btn, .table .actions .btn, .table td:last-child .btn {
+   display: inline-block !important;
+   width: 36px !important;
+   height: 36px !important;
+   padding: 0 !important;
+   margin: 0 !important;
+   border-radius: 8px !important;
+   text-indent: -9999px !important;
+   overflow: hidden !important;
+   position: relative !important;
+   background: transparent !important;
+   border: none !important;
+}
+.icon-btn::before, .action-btn::before, .table .actions .btn::before { content: ''; position: absolute; inset: 0; display: grid; place-items: center; background-repeat: no-repeat; background-position: center; background-size: 18px 18px; }
+
+/* Edit / Builder */
+.icon-btn[href*="action=builder"]::before, .icon-btn[href*="action=edit"]::before,
+.action-btn[href*="action=builder"]::before, .action-btn[href*="action=edit"]::before,
+.table .actions a[href*="action=builder"]::before, .table .actions a[href*="action=edit"]::before {
+   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c7be5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 20h9'/><path d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z'/></svg>");
+}
+
+/* Preview / View */
+.icon-btn[href*="preview"]::before, .icon-btn[href*="take.php"]::before,
+.action-btn[href*="preview"]::before, .action-btn[href*="take.php"]::before,
+.table .actions a[href*="preview"]::before, .table .actions a[href*="take.php"]::before {
+   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23343a40' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z'/><circle cx='12' cy='12' r='3'/></svg>");
+}
+
+/* Delete (danger) */
+.icon-btn[href*="delete"]::before, .action-btn[href*="delete"]::before,
+.table .actions a[href*="delete"]::before {
+   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9534f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 6 5 6 21 6'/><path d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/><path d='M10 11v6'/><path d='M14 11v6'/><path d='M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2'/></svg>");
+}
+
+/* Download / Export / Import */
+.icon-btn[href*="download"]::before, .icon-btn[href*="export"]::before, .icon-btn[href*="import"]::before,
+.action-btn[href*="download"]::before, .action-btn[href*="export"]::before, .action-btn[href*="import"]::before,
+.table .actions a[href*="download"]::before, .table .actions a[href*="export"]::before, .table .actions a[href*="import"]::before {
+   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f8b4c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/><polyline points='7 10 12 15 17 10'/><line x1='12' y1='15' x2='12' y2='3'/></svg>");
+}
+
+/* Specific icons by data-icon attribute (used when href-based matching isn't available) */
+.icon-btn[data-icon="edit"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c7be5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 20h9'/><path d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z'/></svg>"); }
+.icon-btn[data-icon="preview"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23343a40' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z'/><circle cx='12' cy='12' r='3'/></svg>"); }
+.icon-btn[data-icon="delete"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9534f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 6 5 6 21 6'/><path d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/><path d='M10 11v6'/><path d='M14 11v6'/><path d='M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2'/></svg>"); }
+.icon-btn[data-icon="reset"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f6feb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M21 12a9 9 0 1 1-3-6.71'/><polyline points='21 3 21 9 15 9'/></svg>"); }
+
+/* Export variants: CSV (orange), XLS/Excel (green), Template (gray) */
+.icon-btn[data-icon="csv"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e67e22' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/><polyline points='7 10 12 15 17 10'/><line x1='12' y1='15' x2='12' y2='3'/></svg>"); }
+.icon-btn[data-icon="xls"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f8b4c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><path d='M14 2v6h6'/><path d='M10 9l4 6M14 9l-4 6'/></svg>"); }
+.icon-btn[data-icon="template"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c7a86' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='14' height='18' rx='2'/><path d='M7 7h6M7 11h6M7 15h4'/></svg>"); }
+
+/* Force-delete / warning */
+.icon-btn[data-icon="force-delete"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d2323a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M10 14l2-2 2 2 2-2 2 2'/><path d='M3 6h18'/><path d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/></svg>"); }
+
+/* Clone / Duplicate */
+.icon-btn[href*="clone"]::before, .action-btn[href*="clone"]::before, .table .actions a[href*="clone"]::before {
+   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f6feb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>");
+}
+
+/* Fallback generic icon for any .icon-btn/.action-btn without matching href */
+.icon-btn::before, .action-btn::before { filter: none; }
+
+/* Explicit column widths for builder table to keep actions aligned when questions are long */
+.table.builder th:nth-child(1), .table.builder td:nth-child(1) { width: 6%; max-width: 80px; }
+.table.builder th:nth-child(2), .table.builder td:nth-child(2) { width: 6%; max-width: 80px; }
+.table.builder th:nth-child(3), .table.builder td:nth-child(3) { width: 12%; max-width: 160px; }
+.table.builder th:nth-child(4), .table.builder td:nth-child(4) { width: auto; }
+.table.builder th:nth-child(5), .table.builder td:nth-child(5) { width: 12%; max-width: 160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.table.builder th:last-child, .table.builder td:last-child { width: 90px; }
+.table.builder td.actions { min-width: 90px; }
+
+/* =============================================
+   FORMS
+   ============================================= */
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; margin-bottom: 7px; color: #2c3e50; font-weight: 500; font-size: 13px; }
+.form-control { width: 100%; padding: 10px 14px; border: 1px solid #dee2e6; border-radius: 5px; font-size: 13px; transition: all 0.2s ease; }
+.form-control:focus { outline: none; border-color: #1976d2; box-shadow: 0 0 0 3px rgba(25,118,210,0.1); }
+select.form-control { cursor: pointer; }
+
+/* =============================================
+   ALERTS
+   ============================================= */
+.alert { padding: 14px 18px; border-radius: 5px; margin-bottom: 18px; font-size: 13px; }
+.alert-success { background: #d4edda; color: #155724; border-left: 3px solid #28a745; }
+.alert-danger  { background: #f8d7da; color: #721c24; border-left: 3px solid #dc3545; }
+.alert-warning { background: #fff3cd; color: #856404; border-left: 3px solid #ffc107; }
+.alert-info    { background: #d1ecf1; color: #0c5460; border-left: 3px solid #17a2b8; }
+
+/* =============================================
+   BADGES
+   ============================================= */
+.badge { padding: 4px 9px; border-radius: 3px; font-size: 11px; font-weight: 600; display: inline-block; }
+.badge-success { background: #28a745; color: #fff; }
+.badge-danger  { background: #dc3545; color: #fff; }
+.badge-warning { background: #ffc107; color: #333; }
+.badge-info    { background: #17a2b8; color: #fff; }
+.badge-primary { background: #1976d2; color: #fff; }
+
+/* =============================================
+   MODAL
+   ============================================= */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
+.modal.active { display: flex; }
+.modal-content { background: #fff; border-radius: 6px; padding: 0; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.modal-header { background: #fff; color: #2c3e50; padding: 18px 22px; border-bottom: 2px solid #e9ecef; display: flex; justify-content: space-between; align-items: center; }
+.modal-header h3 { margin: 0; font-weight: 600; font-size: 17px; }
+.modal-close { background: transparent; border: none; color: #7f8c8d; font-size: 22px; cursor: pointer; padding: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+.modal-close:hover { color: #2c3e50; }
+.modal-body { padding: 22px; }
+.modal-footer { padding: 18px 22px; background: #f8f9fa; border-top: 1px solid #dee2e6; text-align: right; display: flex; gap: 8px; justify-content: flex-end; }
+
+/* =============================================
+   ACTION BUTTON GROUP
+   ============================================= */
+.action-buttons { display: flex; gap: 5px; }
+
+/* =============================================
+   DASHBOARD & ANALYTICS
+   ============================================= */
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 25px; }
+.stat-card { background: #e3f2fd; color: #1565c0; padding: 20px; border-radius: 6px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.stat-card .stat-icon { font-size: 36px; margin-bottom: 8px; }
+.stat-card .stat-number { font-size: 28px; font-weight: 700; margin: 8px 0 4px 0; color: #1565c0; }
+.stat-card .stat-label { font-size: 12px; color: #1976d2; font-weight: 500; }
+
+.chart-container { background: #fff; padding: 22px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 18px; }
+.chart-container h3 { margin-bottom: 18px; color: #2c3e50; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; font-size: 16px; font-weight: 600; }
+.chart-bar { margin-bottom: 13px; }
+.chart-bar-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #495057; }
+.chart-bar-outer { background: #e9ecef; border-radius: 4px; height: 22px; overflow: hidden; }
+.chart-bar-inner { background: #1976d2; height: 100%; border-radius: 4px; transition: width 0.5s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; color: #fff; font-weight: 600; font-size: 11px; }
+
+.shortcut-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 18px; }
+.shortcut-item { background: #fff; padding: 18px; border-radius: 6px; text-align: center; text-decoration: none; color: #2c3e50; border: 1px solid #dee2e6; transition: all 0.2s ease; }
+.shortcut-item:hover { border-color: #1976d2; box-shadow: 0 2px 6px rgba(25,118,210,0.15); }
+.shortcut-item .icon { font-size: 32px; margin-bottom: 8px; }
+.shortcut-item .label { font-weight: 600; font-size: 12px; }
+
+.info-box { background: #fff; padding: 18px 20px; border-radius: 6px; margin-bottom: 18px; border-left: 3px solid #1976d2; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.info-box h3 { margin-top: 0; color: #1976d2; font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.info-box p { color: #2c3e50; margin: 0; font-size: 13px; }
+
+/* =============================================
+   UTILITIES
+   ============================================= */
+.hide-on-mobile { display: initial; }
+.show-on-mobile { display: none; }
+
+/* Back button style used across pages for smooth Kembali links */
+.back-btn {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 12px;
+   border-radius: 6px;
+   background: #f3f6ff;
+   color: #1f6feb;
+   border: 1px solid rgba(31,111,235,0.12);
+   text-decoration: none;
+   font-weight: 600;
+   transition: transform .12s ease, opacity .12s ease;
+}
+.back-btn:hover { transform: translateY(-1px); opacity: .95; }
+
+/* Tambahkan ikon panah kiri sebelum label (visual only) */
+.back-btn::before {
+   content: '';
+   display: inline-block;
+   width: 14px;
+   height: 14px;
+   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f6feb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg>");
+   background-repeat: no-repeat;
+   background-position: center;
+   background-size: 14px 14px;
+   transform: translateY(0);
+}
+
+/* Hide 'strip 3' on desktop, keep visible on mobile.
+    Support several possible class/id variants to be safe. */
+@media (min-width: 769px) {
+   .strip-3, .strip3, .stip-3, .stip3, [data-strip="3"] { display: none !important; }
+}
+@media (max-width: 768px) {
+   .strip-3, .strip3, .stip-3, .stip3, [data-strip="3"] { display: initial !important; }
+}
+
+/* Screen-reader only helper (visually hidden but available to assistive tech) */
+.sr-only {
+   position: absolute !important;
+   width: 1px !important;
+   height: 1px !important;
+   padding: 0 !important;
+   margin: -1px !important;
+   overflow: hidden !important;
+   clip: rect(0, 0, 0, 0) !important;
+   white-space: nowrap !important;
+   border: 0 !important;
+}
+
+/* =============================================
+   RESPONSIVE (Tablet and below)
+   ============================================= */
+@media (max-width: 768px) {
+  html, body { font-size: 15px; line-height: 1.5; }
+  /* Layout */
+  .sidebar { width: 0 !important; overflow: hidden; }
+  .sidebar.active { width: 260px !important; }
+  .main-content { margin-left: 0 !important; }
+  .top-bar { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px; }
+  .top-bar h1 { font-size: 18px; }
+  .user-info { gap: 10px; }
+  .content-area { padding: 16px; }
+  .card-body { padding: 14px; }
+  .card-header { padding: 12px 14px; }
+  /* UI elements */
+  .btn { padding: 8px 12px; font-size: 14px; }
+  table th, table td { padding: 10px 12px; }
+  .table-container, .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .dashboard-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .shortcut-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .modal-content { width: 94% !important; }
+  /* Utility toggles */
+  .hide-on-mobile { display: none !important; }
+  .show-on-mobile { display: inline-flex !important; align-items: center; justify-content: center; }
+}
+
+/* =============================================
+   RESPONSIVE (Phones <= 576px)
+   ============================================= */
+@media (max-width: 576px) {
+  html, body { font-size: 14px; }
+  .top-bar { padding: 12px; }
+  .top-bar h1 { font-size: 16px; }
+  .btn { padding: 7px 10px; font-size: 13px; }
+  .card-header h3 { font-size: 15px; }
+  table th { font-size: 11px; }
+  table td { font-size: 12.5px; }
+  .sidebar.active { width: 240px !important; }
+  /* Make login and generic containers breathe better on mobile */
+  .login-container, .container { padding-left: 12px; padding-right: 12px; }
+  .login-title, .site-title, .brand-title, .page-title { font-size: 20px; line-height: 1.25; }
+}
+
+/* Mobile adjustments to simplify dashboard and position hamburger */
+@media (max-width: 768px) {
+   /* Reduce density of dashboard cards and icons */
+   .dashboard-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+   .stat-card { padding: 12px; }
+   .stat-card .stat-icon { font-size: 28px; }
+   .stat-card .stat-number { font-size: 20px; }
+   .stat-card .stat-label { font-size: 11px; }
+   .card-body { padding: 14px; }
+   .card-header { padding: 12px; }
+   /* Make shortcut tiles tighter */
+   .shortcut-grid { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+   .shortcut-item .icon { font-size: 26px; }
+   /* Hide heavy charts on smaller screens to reduce clutter */
+   .chart-container { display: none; }
+}
+
+@media (max-width: 576px) {
+   /* Keep top bar compact but ensure hamburger sits left of title */
+   .top-bar { flex-direction: row; align-items: center; gap: 8px; }
+   .hamburger-toggle { display: inline-flex; order: 0; margin-right: 8px; }
+   .top-bar h1 { flex: 1 1 auto; margin: 0; font-size: 15px; }
+   /* Reduce paddings for extreme small screens */
+   .content-area { padding: 10px; }
+   .card { margin-bottom: 12px; }
+   .stat-card .stat-number { font-size: 18px; }
+   .stat-card .stat-icon { font-size: 24px; }
+   /* Make sidebar hidden by default; hamburger will toggle it as existing script does */
+   .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+   .sidebar.active { transform: translateX(0); }
+}
+
+/* Chart toggle button (mobile) */
+.chart-toggle {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   padding: 8px 12px;
+   border-radius: 6px;
+   background: #1976d2;
+   color: #fff;
+   font-size: 13px;
+   cursor: pointer;
+   border: none;
+}
+.chart-toggle:active { transform: translateY(1px); }
+
+/* Ensure hamburger visible on mobile */
+.hamburger-toggle { display: none; }
+@media (max-width: 768px) { .hamburger-toggle { display: inline-flex; } }
+
+/* --- ACTION ICONS: use inline SVGs (data URIs) instead of emoji for crisp rendering --- */
+/* Apply to last column in builder tables (Edit / Bank / Delete) */
+.table th:last-child, .table td:last-child { width: 70px; text-align: center; }
+.table td:last-child { vertical-align: middle; }
+.table td:last-child .btn {
+   display: block;
+   width: 36px;
+   height: 36px;
+   padding: 0;
+   margin: 6px auto;
+   border-radius: 8px;
+   text-indent: -9999px; /* hide text */
+   overflow: hidden;
+   position: relative;
+}
+.table td:last-child .btn::before {
+   content: '';
+   position: absolute;
+   inset: 0;
+   display: grid;
+   place-items: center;
+   width: 100%;
+   height: 100%;
+   background-repeat: no-repeat;
+   background-position: center;
+   background-size: 18px 18px;
+}
+/* Edit (pencil) */
+.table td:last-child .btn[href*="action=edit_question"]::before,
+.table td:last-child a[href*="action=edit_question"]::before,
+.table .actions .btn[href*="action=edit_question"]::before,
+.table .actions a[href*="action=edit_question"]::before {
+   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c7be5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 20h9'/><path d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z'/></svg>");
+}
+/* Bank/save icon removed (bank feature deprecated) */
+/* Delete (trash) */
+.table td:last-child .btn-danger::before,
+.table td:last-child a[href*='action=delete_question']::before,
+.table .actions .btn-danger::before,
+.table .actions a[href*='action=delete_question']::before {
+   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9534f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 6 5 6 21 6'/><path d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/><path d='M10 11v6'/><path d='M14 11v6'/><path d='M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2'/></svg>");
+}
+/* Keep icons visually flat */
+.table td:last-child .btn,
+.table td:last-child .btn-danger {
+   background: transparent !important;
+   border: none !important;
+   box-shadow: none !important;
+}
+.table td:last-child .btn:hover::before { filter: brightness(0.95); }
+
+/* Import mobile overrides (keamanan: file berada di folder yang sama) */
+@import url("mobile.css");

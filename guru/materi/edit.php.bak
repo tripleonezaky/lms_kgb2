@@ -1,0 +1,133 @@
+<?php
+// guru/materi/edit.php
+// Edit metadata materi milik guru dengan opsi ganti file
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/../../includes/check_session.php';
+require_once __DIR__ . '/../../includes/check_role.php';
+check_role(['guru']);
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/functions.php';
+
+$guru_id = (int)$_SESSION['user_id'];
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+function get_materi_guru($guru_id, $id){
+    $sql = "SELECT m.*, ag.kelas_id, ag.mapel_id, k.nama_kelas, mp.nama_mapel\n            FROM materi m\n            JOIN assignment_guru ag ON ag.id=m.assignment_id\n            JOIN kelas k ON k.id=ag.kelas_id\n            JOIN mata_pelajaran mp ON mp.id=ag.mapel_id\n            WHERE m.id=".(int)$id." AND ag.guru_id=".(int)$guru_id." LIMIT 1";
+    $r = query($sql);
+    return $r ? fetch_assoc($r) : null;
+}
+
+if ($id <= 0) { set_flash('error','Materi tidak ditemukan'); redirect('index.php'); }
+
+$materi = get_materi_guru($guru_id, $id);
+if (!$materi) { set_flash('error','Akses ditolak atau materi tidak ditemukan'); redirect('index.php'); }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
+    $judul = escape_string($_POST['judul_materi'] ?? '');
+    $deskripsi = escape_string($_POST['deskripsi'] ?? '');
+    $new_file_path = $materi['file_path'];
+
+    // Upload file baru jika ada
+    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+        $allowed = ['pdf','doc','docx','ppt','pptx','xls','xlsx'];
+        $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+        if (in_array($ext, $allowed)) {
+            $dir = __DIR__ . '/../../assets/uploads/materi/';
+            if (!is_dir($dir)) { @mkdir($dir, 0777, true); }
+            $newName = 'materi-'.$materi['assignment_id'].'-'.time().'-'.bin2hex(random_bytes(3)).'.'.$ext;
+            $dest = $dir.$newName;
+            if (@move_uploaded_file($_FILES['file']['tmp_name'], $dest)) {
+                // Hapus file lama jika ada
+                if (!empty($materi['file_path'])) {
+                    $oldAbs = __DIR__ . '/../../assets/uploads/'. $materi['file_path'];
+                    if (is_file($oldAbs)) { @unlink($oldAbs); }
+                }
+                $new_file_path = 'materi/'.$newName; // relative
+            }
+        } else {
+            set_flash('error','Tipe file tidak diizinkan');
+            redirect('edit.php?id='.$id);
+        }
+    }
+
+    if ($judul === '') {
+        set_flash('error','Judul wajib diisi');
+        redirect('edit.php?id='.$id);
+    }
+
+    $file_sql = $new_file_path ? "'".escape_string($new_file_path)."'" : "NULL";
+    $ok = query("UPDATE materi SET judul_materi='{$judul}', deskripsi='{$deskripsi}', file_path={$file_sql} WHERE id={$id} LIMIT 1");
+    if ($ok) set_flash('success','Materi diperbarui'); else set_flash('error','Gagal memperbarui materi');
+    redirect('index.php');
+}
+
+$flash = get_flash();
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit Materi</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .container{max-width:900px;margin:16px auto;padding:12px}
+    .card{background:#fff;border:1px solid #ddd;border-radius:10px;margin-bottom:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    .card-header{padding:14px 18px;background:#f5f5f5;font-weight:600}
+    .card-body{padding:18px}
+    .row{display:flex;gap:14px;flex-wrap:wrap}
+    .row .col{flex:1 1 260px}
+    label{display:block;margin-bottom:6px;font-weight:600}
+    input[type=text],select,textarea,input[type=file]{width:100%;padding:12px;border:1px solid #ced4da;border-radius:8px;background:#fff;box-sizing:border-box}
+    textarea{min-height:120px}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:#2c7be5;box-shadow:0 0 0 3px rgba(44,123,229,.15)}
+    .btn{display:inline-block;padding:10px 14px;border-radius:8px;border:1px solid #2c7be5;background:#2c7be5;color:#fff;cursor:pointer;text-decoration:none}
+    .btn:hover{filter:brightness(0.95)}
+    .alert{padding:12px;border-radius:8px;margin-bottom:12px}
+    .alert-error{background:#fdecea;color:#b00020}
+    .alert-success{background:#e6f4ea;color:#1e7e34}
+    .muted{color:#64748b;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">Edit Materi</div>
+      <div class="card-body">
+        <div style="margin-bottom:10px">
+          <a href="index.php" class="btn">Kembali</a>
+        </div>
+        <?php if ($flash): ?>
+          <div class="alert alert-<?php echo htmlspecialchars($flash['type']); ?>"><?php echo htmlspecialchars($flash['message']); ?></div>
+        <?php endif; ?>
+        <form method="post" enctype="multipart/form-data">
+          <input type="hidden" name="update" value="1" />
+          <div class="row">
+            <div class="col">
+              <label>Judul Materi</label>
+              <input type="text" name="judul_materi" value="<?php echo htmlspecialchars($materi['judul_materi']); ?>" required />
+            </div>
+          </div>
+          <div>
+            <label>Deskripsi</label>
+            <textarea name="deskripsi" rows="3"><?php echo htmlspecialchars($materi['deskripsi']); ?></textarea>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label>File (opsional - untuk mengganti)</label>
+              <input type="file" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" />
+              <small class="muted">Saat ini: <?php echo $materi['file_path'] ? '<a target="_blank" href="../../assets/uploads/'.htmlspecialchars($materi['file_path']).'">Lihat</a>' : '-'; ?></small>
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn" type="submit">Simpan Perubahan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

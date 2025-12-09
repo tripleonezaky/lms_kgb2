@@ -1,0 +1,516 @@
+﻿<?php
+/**
+ * File: admin/kelola_guru.php
+ * Fungsi: Kelola Data Guru (CRUD) sesuai skema database saat ini
+ * Skema tabel users yang digunakan:
+ *  - id, username (UNIQUE), password, nama_lengkap, email, no_whatsapp,
+ *    role ('guru'), kode_guru (UNIQUE), nuptk (opsional), is_active, created_at
+ */
+
+require_once __DIR__ . '/../includes/auth_admin.php';
+require_once __DIR__ . '/../config/database.php';
+
+// =============================================
+// UTIL
+// =============================================
+function flash_message($key) {
+    if(isset($_SESSION[$key])) {
+        $msg = $_SESSION[$key];
+        unset($_SESSION[$key]);
+        return $msg;
+    }
+    return null;
+}
+
+// =============================================
+// PROSES TAMBAH GURU
+// =============================================
+if(isset($_POST['tambah_guru'])) {
+    $nama_lengkap = mysqli_real_escape_string($conn, trim($_POST['nama_lengkap']));
+    $email        = mysqli_real_escape_string($conn, trim($_POST['email']));
+    $no_whatsapp  = mysqli_real_escape_string($conn, trim($_POST['no_whatsapp']));
+    $nuptk        = isset($_POST['nuptk']) ? mysqli_real_escape_string($conn, trim($_POST['nuptk'])) : null;
+
+    $posted_username = isset($_POST['username']) ? strtoupper(trim($_POST['username'])) : '';
+    $password        = isset($_POST['password']) ? (string)$_POST['password'] : '';
+    $password2       = isset($_POST['password_confirm']) ? (string)$_POST['password_confirm'] : '';
+
+    // Tentukan username: gunakan input jika valid, jika kosong maka generate berikutnya
+    if ($posted_username === '') {
+        $qLast = "SELECT username FROM users WHERE role = 'guru' AND username LIKE 'KGB2G%' ORDER BY username DESC LIMIT 1";
+        $rLast = mysqli_query($conn, $qLast);
+        if($rLast && mysqli_num_rows($rLast) > 0) {
+            $last = mysqli_fetch_assoc($rLast);
+            $last_number = (int)substr($last['username'], 5);
+            $new_number = $last_number + 1;
+        } else {
+            $new_number = 1;
+        }
+        $username = 'KGB2G' . str_pad($new_number, 3, '0', STR_PAD_LEFT);
+    } else {
+        $username = $posted_username;
+    }
+    $kode_guru = $username;
+
+    // Validasi format username guru
+    if (!preg_match('/^KGB2G\d{3,}$/', $username)) {
+        $_SESSION['error'] = "Format username guru tidak valid. Contoh: KGB2G001";
+        header('Location: kelola_guru.php');
+        exit();
+    }
+
+    // Validasi password
+    if ($password === '' || $password2 === '') {
+        $_SESSION['error'] = "Password dan konfirmasi password wajib diisi!";
+        header('Location: kelola_guru.php');
+        exit();
+    }
+    if ($password !== $password2) {
+        $_SESSION['error'] = "Konfirmasi password tidak sama!";
+        header('Location: kelola_guru.php');
+        exit();
+    }
+    if (strlen($password) < 6) {
+        $_SESSION['error'] = "Password minimal 6 karakter!";
+        header('Location: kelola_guru.php');
+        exit();
+    }
+
+    // Validasi duplikasi
+    $dup_username = mysqli_query($conn, "SELECT id FROM users WHERE username = '$username' LIMIT 1");
+    $dup_email    = mysqli_query($conn, "SELECT id FROM users WHERE email = '$email' LIMIT 1");
+    $dup_kode     = mysqli_query($conn, "SELECT id FROM users WHERE kode_guru = '$kode_guru' LIMIT 1");
+    $dup_nuptk    = null;
+    if(!empty($nuptk)) {
+        $dup_nuptk = mysqli_query($conn, "SELECT id FROM users WHERE nuptk = '$nuptk' LIMIT 1");
+    }
+
+    if($dup_username && mysqli_num_rows($dup_username) > 0) {
+        $_SESSION['error'] = "Username sudah terpakai (".$username.")";
+    } elseif($dup_kode && mysqli_num_rows($dup_kode) > 0) {
+        $_SESSION['error'] = "Kode guru sudah terpakai (".$kode_guru.")";
+    } elseif($dup_email && mysqli_num_rows($dup_email) > 0) {
+        $_SESSION['error'] = "Email sudah terdaftar!";
+    } elseif($dup_nuptk && mysqli_num_rows($dup_nuptk) > 0) {
+        $_SESSION['error'] = "NUPTK sudah terdaftar!";
+    } else {
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+        $nuptk_val = !empty($nuptk) ? "'".$nuptk."'" : 'NULL';
+        $no_wa_val = !empty($no_whatsapp) ? "'".$no_whatsapp."'" : 'NULL';
+
+        $insert = "
+            INSERT INTO users (username, password, role, nama_lengkap, email, no_whatsapp, kode_guru, nuptk, is_active)
+            VALUES ('$username', '$password_hash', 'guru', '$nama_lengkap', '$email', $no_wa_val, '$kode_guru', $nuptk_val, 1)
+        ";
+        if(mysqli_query($conn, $insert)) {
+            $new_id = mysqli_insert_id($conn);
+            // Upload foto jika ada
+            if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+                $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+                $tmp = $_FILES['foto']['tmp_name'];
+                $size = (int)$_FILES['foto']['size'];
+                $type = function_exists('mime_content_type') ? mime_content_type($tmp) : $_FILES['foto']['type'];
+                if (isset($allowed[$type]) && $size <= 2 * 1024 * 1024) {
+                    $ext = $allowed[$type];
+                    $dirPublic = 'assets/uploads/foto_profil';
+                    $base = realpath(__DIR__ . '/../');
+                    $dirFs = $base . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $dirPublic);
+                    if (!is_dir($dirFs)) { @mkdir($dirFs, 0777, true); }
+                    $fname = 'user-' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $username) . '-' . time() . '.' . $ext;
+                    $destFs = $dirFs . DIRECTORY_SEPARATOR . $fname;
+                    if (@move_uploaded_file($tmp, $destFs)) {
+                        $pathRel = $dirPublic . '/' . $fname;
+                        @mysqli_query($conn, "UPDATE users SET foto = '" . mysqli_real_escape_string($conn, $pathRel) . "' WHERE id = $new_id");
+                    }
+                }
+            }
+            $_SESSION['success'] = "Guru berhasil ditambahkan! Username/Kode Guru: <strong>$username</strong>.";
+        } else {
+            $_SESSION['error'] = "Gagal menambahkan guru: " . mysqli_error($conn);
+        }
+    }
+    header('Location: kelola_guru.php');
+    exit();
+}
+
+// =============================================
+// PROSES EDIT GURU
+// =============================================
+if(isset($_POST['edit_guru'])) {
+    $id           = (int)$_POST['id'];
+    $nama_lengkap = mysqli_real_escape_string($conn, trim($_POST['nama_lengkap']));
+    $email        = mysqli_real_escape_string($conn, trim($_POST['email']));
+    $no_whatsapp  = mysqli_real_escape_string($conn, trim($_POST['no_whatsapp']));
+    $nuptk        = isset($_POST['nuptk']) ? mysqli_real_escape_string($conn, trim($_POST['nuptk'])) : null;
+    $is_active    = isset($_POST['is_active']) ? 1 : 0;
+
+    // Validasi duplikasi email & NUPTK (kecuali diri sendiri)
+    $dup_email = mysqli_query($conn, "SELECT id FROM users WHERE email = '$email' AND id != $id LIMIT 1");
+    $dup_nuptk = null;
+    if(!empty($nuptk)) {
+        $dup_nuptk = mysqli_query($conn, "SELECT id FROM users WHERE nuptk = '$nuptk' AND id != $id LIMIT 1");
+    }
+
+    if($dup_email && mysqli_num_rows($dup_email) > 0) {
+        $_SESSION['error'] = "Email sudah terdaftar!";
+    } elseif($dup_nuptk && mysqli_num_rows($dup_nuptk) > 0) {
+        $_SESSION['error'] = "NUPTK sudah terdaftar!";
+    } else {
+        $nuptk_set = !empty($nuptk) ? "nuptk = '".$nuptk."'" : "nuptk = NULL";
+        $no_wa_set = !empty($no_whatsapp) ? "no_whatsapp = '".$no_whatsapp."'" : "no_whatsapp = NULL";
+
+        $update = "
+            UPDATE users SET
+                nama_lengkap = '$nama_lengkap',
+                email = '$email',
+                $no_wa_set,
+                $nuptk_set,
+                is_active = $is_active
+            WHERE id = $id AND role = 'guru'
+        ";
+        if(mysqli_query($conn, $update)) {
+            $_SESSION['success'] = "Data guru berhasil diupdate!";
+        } else {
+            $_SESSION['error'] = "Gagal mengupdate guru: " . mysqli_error($conn);
+        }
+    }
+    header('Location: kelola_guru.php');
+    exit();
+}
+
+// =============================================
+// PROSES HAPUS GURU
+// =============================================
+if(isset($_GET['hapus'])) {
+    $id = (int)$_GET['hapus'];
+    // Cek assignment
+    $cek = mysqli_query($conn, "SELECT id FROM assignment_guru WHERE guru_id = $id LIMIT 1");
+    if($cek && mysqli_num_rows($cek) > 0) {
+        $_SESSION['error'] = "Tidak dapat menghapus guru karena masih memiliki assignment mengajar!";
+    } else {
+        $del = mysqli_query($conn, "DELETE FROM users WHERE id = $id AND role = 'guru'");
+        if($del) {
+            $_SESSION['success'] = "Guru berhasil dihapus!";
+        } else {
+            $_SESSION['error'] = "Gagal menghapus guru: " . mysqli_error($conn);
+        }
+    }
+    header('Location: kelola_guru.php');
+    exit();
+}
+
+// =============================================
+// PROSES RESET PASSWORD
+// =============================================
+if(isset($_GET['reset_password'])) {
+    $id = (int)$_GET['reset_password'];
+    $password_default = 'guru123';
+    $password_hash = password_hash($password_default, PASSWORD_DEFAULT);
+    $reset = mysqli_query($conn, "UPDATE users SET password = '$password_hash' WHERE id = $id AND role = 'guru'");
+    if($reset) {
+        $_SESSION['success'] = "Password berhasil direset ke default: <strong>guru123</strong>";
+    } else {
+        $_SESSION['error'] = "Gagal mereset password: " . mysqli_error($conn);
+    }
+    header('Location: kelola_guru.php');
+    exit();
+}
+
+// =============================================
+// AMBIL DATA GURU (Search & Pagination)
+// =============================================
+$limit  = 10;
+$page   = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $limit;
+$search = isset($_GET['search']) ? mysqli_real_escape_string($conn, trim($_GET['search'])) : '';
+
+$where = "WHERE role = 'guru'";
+if(!empty($search)) {
+    $where .= " AND (username LIKE '%$search%' OR nama_lengkap LIKE '%$search%' OR email LIKE '%$search%' OR no_whatsapp LIKE '%$search%' OR kode_guru LIKE '%$search%' OR nuptk LIKE '%$search%')";
+}
+
+$qData = "SELECT * FROM users $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+$rData = mysqli_query($conn, $qData);
+
+$qTotal = "SELECT COUNT(*) AS total FROM users $where";
+$rTotal = mysqli_query($conn, $qTotal);
+$total_data = $rTotal ? (int)mysqli_fetch_assoc($rTotal)['total'] : 0;
+$total_pages = max(1, (int)ceil($total_data / $limit));
+
+// Siapkan username berikutnya untuk ditampilkan pada form tambah guru
+$next_username = 'KGB2G001';
+$qLastNext = "SELECT username FROM users WHERE role = 'guru' AND username LIKE 'KGB2G%' ORDER BY username DESC LIMIT 1";
+$rLastNext = mysqli_query($conn, $qLastNext);
+if($rLastNext && mysqli_num_rows($rLastNext) > 0) {
+    $lastNext = mysqli_fetch_assoc($rLastNext);
+    $numNext = (int)substr($lastNext['username'], 5);
+    $numNext = $numNext + 1;
+    $next_username = 'KGB2G' . str_pad($numNext, 3, '0', STR_PAD_LEFT);
+}
+
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Guru - LMS KGB2</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/_overrides.css">
+</head>
+<body>
+
+<?php include 'sidebar.php'; ?>
+
+<div class="main-content">
+    <div class="top-bar">
+        <h1><i class="fas fa-user-tie" aria-hidden="true"></i> Kelola Data Guru</h1>
+        <div class="user-info">
+            <span>Admin: <strong><?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?></strong></span>
+            <a href="../logout.php" class="btn-logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <?php if($msg = flash_message('success')): ?>
+            <div class="alert alert-success"><i class="fas fa-check-circle" aria-hidden="true"></i> <?php echo $msg; ?></div>
+        <?php endif; ?>
+        <?php if($msg = flash_message('error')): ?>
+            <div class="alert alert-danger"><i class="fas fa-times-circle" aria-hidden="true"></i> <?php echo $msg; ?></div>
+        <?php endif; ?>
+
+        <div class="alert alert-info">
+            ℹ️ <strong>Info:</strong> Username/Kode Guru mengikuti format <code>KGB2G001, KGB2G002, dst</code> dan ditampilkan pada form. Password wajib diinput manual.
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>📋 Daftar Guru</h3>
+            </div>
+            <div class="card-body">
+                <div class="card-toolbar" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <form method="GET" action="" style="display:flex; gap:10px;">
+                        <input type="text" name="search" placeholder="🔍 Cari Username, Nama, Email, WA, Kode Guru, NUPTK..." value="<?php echo htmlspecialchars(($search) ?? ''); ?>" style="padding:8px 15px; border:1px solid #ddd; border-radius:5px; width:320px;">
+                        <button type="submit" class="btn btn-secondary">Cari</button>
+                        <?php if(!empty($search)): ?>
+                        <a href="kelola_guru.php" class="btn btn-secondary">Reset</a>
+                        <?php endif; ?>
+                    </form>
+                    <button class="btn btn-primary" onclick="openModal('modalTambah')">➕ Tambah Guru</button>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <strong>Total Guru:</strong> <span class="badge badge-primary"><?php echo number_format($total_data); ?></span>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Username</th>
+                                <th>Kode Guru</th>
+                                <th>NUPTK</th>
+                                <th>Nama Lengkap</th>
+                                <th>Email</th>
+                                <th>No. WhatsApp</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if($rData && mysqli_num_rows($rData) > 0): $no = $offset + 1; ?>
+                                <?php while($row = mysqli_fetch_assoc($rData)): ?>
+                                <tr>
+                                    <td><?php echo $no++; ?></td>
+                                    <td><span class="badge badge-info"><?php echo htmlspecialchars(($row['username']) ?? ''); ?></span></td>
+                                    <td><?php echo htmlspecialchars(($row['kode_guru']) ?? ''); ?></td>
+                                    <td><?php echo $row['nuptk'] ? htmlspecialchars(($row['nuptk']) ?? '') : '<em style="color:#999;">-</em>'; ?></td>
+                                    <td><strong><?php echo htmlspecialchars(($row['nama_lengkap']) ?? ''); ?></strong></td>
+                                    <td><?php echo htmlspecialchars(($row['email']) ?? ''); ?></td>
+                                    <td><?php echo $row['no_whatsapp'] ? htmlspecialchars(($row['no_whatsapp']) ?? '') : '<em style="color:#999;">-</em>'; ?></td>
+                                    <td>
+                                        <?php if((int)$row['is_active'] === 1): ?>
+                                            <span class="badge badge-success"><i class="fas fa-check-circle" aria-hidden="true"></i> Aktif</span>
+                                        <?php else: ?>
+                                            <span class="badge badge-danger"><i class="fas fa-times-circle" aria-hidden="true"></i> Nonaktif</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="#" class="btn icon-btn" data-icon="edit" title="Edit" onclick='openModalEdit(<?php echo json_encode($row, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>); return false;'>Edit</a>
+                                            <a href="?reset_password=<?php echo $row['id']; ?>" class="btn icon-btn" data-icon="reset" onclick="return confirm('Reset password guru ini ke default (guru123)?')" title="Reset Password">Reset</a>
+                                            <a href="?hapus=<?php echo $row['id']; ?>" class="btn icon-btn" data-icon="delete" onclick="return confirm('Yakin ingin menghapus guru ini?')" title="Hapus">Hapus</a>
+                                            <a href="delete_force.php?entity=guru&id=<?php echo $row['id']; ?>&redirect=<?php echo urlencode('kelola_guru.php'); ?>" class="btn icon-btn" data-icon="force-delete" onclick="return confirm('Hapus Paksa: Guru dan seluruh data terkait (assignment, soal, materi, tugas, nilai terkait) akan dihapus. Lanjutkan?')" title="Hapus Paksa">Force</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="9" style="text-align:center; padding:30px; color:#999;">Tidak ada data guru<?php echo !empty($search) ? ' dengan pencarian &quot;' . htmlspecialchars(($search) ?? '') . '&quot;' : ''; ?></td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <?php 
+                    $start = $total_data > 0 ? ($offset + 1) : 0;
+                    $end = min($offset + $limit, $total_data);
+                ?>
+                <div class="pagination-bar">
+                    <div class="pagination-info">Jumlah: <?php echo $start; ?>–<?php echo $end; ?> / <?php echo number_format($total_data); ?></div>
+                    <?php if($total_pages > 1): ?>
+                    <div class="pagination-box">
+                        <?php if($page > 1): ?>
+                            <a class="page-link" href="?page=<?php echo $page-1; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">« Prev</a>
+                        <?php else: ?>
+                            <span class="page-link disabled">« Prev</span>
+                        <?php endif; ?>
+
+                        <?php for($i=1;$i<=$total_pages;$i++): ?>
+                            <a class="page-link <?php echo $i==$page ? 'active' : ''; ?>" href="?page=<?php echo $i; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>"><?php echo $i; ?></a>
+                        <?php endfor; ?>
+
+                        <?php if($page < $total_pages): ?>
+                            <a class="page-link" href="?page=<?php echo $page+1; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">Next »</a>
+                        <?php else: ?>
+                            <span class="page-link disabled">Next »</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal Tambah Guru -->
+<div id="modalTambah" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>➕ Tambah Guru Baru</h3>
+            <button class="modal-close" onclick="closeModal('modalTambah')">&times;</button>
+        </div>
+        <form method="POST" action="" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Username (Kode Guru) *</label>
+                    <input type="text" name="username" required pattern="^KGB2G\d{3,}$" title="Format: KGB2G diikuti angka, contoh KGB2G001" placeholder="Contoh: KGB2G001">
+                    <small style="color:#999;">Format: KGB2G001, KGB2G002, ...</small>
+                </div>
+                <div class="form-group">
+                    <label>Nama Lengkap *</label>
+                    <input type="text" name="nama_lengkap" required maxlength="100" placeholder="Contoh: Budi Santoso, S.Kom">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" name="email" required maxlength="100" placeholder="Contoh: budi@kgb2.sch.id">
+                </div>
+                <div class="form-group">
+                    <label>No. WhatsApp</label>
+                    <input type="text" name="no_whatsapp" maxlength="20" placeholder="Contoh: 081234567891">
+                </div>
+                <div class="form-group">
+                    <label>NUPTK (opsional)</label>
+                    <input type="text" name="nuptk" maxlength="20" placeholder="Contoh: 1234567890123456">
+                </div>
+                <div class="form-group">
+                    <label>Password *</label>
+                    <input type="password" name="password" required minlength="6" placeholder="Minimal 6 karakter">
+                </div>
+                <div class="form-group">
+                    <label>Konfirmasi Password *</label>
+                    <input type="password" name="password_confirm" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Foto (opsional)</label>
+                    <input type="file" name="foto" accept="image/*">
+                    <small style="color:#999;">Format: JPG/PNG/WebP, maks 2MB</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalTambah')">Batal</button>
+                <button type="submit" name="tambah_guru" class="btn btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Edit Guru -->
+<div id="modalEdit" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-pen" aria-hidden="true"></i> Edit Data Guru</h3>
+            <button class="modal-close" onclick="closeModal('modalEdit')">&times;</button>
+        </div>
+        <form method="POST" action="">
+            <input type="hidden" name="id" id="edit_id">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Username (tidak dapat diubah)</label>
+                    <input type="text" id="edit_username" readonly style="background:#f0f0f0; cursor:not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label>Kode Guru (tidak dapat diubah)</label>
+                    <input type="text" id="edit_kode_guru" readonly style="background:#f0f0f0; cursor:not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label>Nama Lengkap *</label>
+                    <input type="text" name="nama_lengkap" id="edit_nama_lengkap" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" name="email" id="edit_email" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label>No. WhatsApp</label>
+                    <input type="text" name="no_whatsapp" id="edit_no_whatsapp" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label>NUPTK (opsional)</label>
+                    <input type="text" name="nuptk" id="edit_nuptk" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" name="is_active" id="edit_is_active" value="1">
+                        <span>Aktif</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalEdit')">Batal</button>
+                <button type="submit" name="edit_guru" class="btn btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../assets/js/script.js"></script>
+<script>
+function openModalEdit(data) {
+    document.getElementById('edit_id').value = data.id;
+    document.getElementById('edit_username').value = data.username;
+    document.getElementById('edit_kode_guru').value = data.kode_guru || data.username;
+    document.getElementById('edit_nama_lengkap').value = data.nama_lengkap;
+    document.getElementById('edit_email').value = data.email;
+    document.getElementById('edit_no_whatsapp').value = data.no_whatsapp || '';
+    document.getElementById('edit_nuptk').value = data.nuptk || '';
+    document.getElementById('edit_is_active').checked = parseInt(data.is_active, 10) === 1;
+    openModal('modalEdit');
+}
+</script>
+<style>
+.pagination-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:15px}
+.pagination-info{padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;color:#334155;background:#fff}
+.pagination-box{display:flex;gap:6px;flex-wrap:wrap}
+.page-link{display:inline-block;padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;color:#334155;background:#fff;text-decoration:none}
+.page-link:hover{border-color:#1e5ba8;color:#1e5ba8}
+.page-link.active{background:#1e5ba8;color:#fff;border-color:#1e5ba8}
+.page-link.disabled{opacity:.5;pointer-events:none}
+</style>
+</body>
+</html>
+

@@ -1,0 +1,108 @@
+﻿<?php
+/**
+ * File: /ubah_password.php
+ * Fitur: Ganti password untuk role guru dan siswa (menggunakan password lama)
+ */
+session_start();
+require_once __DIR__ . '/includes/check_session.php';
+require_once __DIR__ . '/config/database.php';
+
+// Hanya guru/siswa yang boleh akses halaman ini
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['guru','siswa'], true)) {
+    header('Location: index.php');
+    exit();
+}
+
+$user_id = (int)$_SESSION['user_id'];
+$role = $_SESSION['role'];
+
+$success = '';
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $old = trim($_POST['old_password'] ?? '');
+    $new = trim($_POST['new_password'] ?? '');
+    $conf = trim($_POST['confirm_password'] ?? '');
+
+    if ($old === '' || $new === '' || $conf === '') {
+        $error = 'Semua field wajib diisi';
+    } elseif (strlen($new) < 6) {
+        $error = 'Password baru minimal 6 karakter';
+    } elseif ($new !== $conf) {
+        $error = 'Konfirmasi password tidak sama';
+    } else {
+        // Ambil hash lama
+        $res = query("SELECT password FROM users WHERE id={$user_id} LIMIT 1");
+        $row = $res ? fetch_assoc($res) : null;
+        if (!$row) {
+            $error = 'User tidak ditemukan';
+        } elseif (!password_verify($old, $row['password'])) {
+            $error = 'Password lama salah';
+        } else {
+            $hash = password_hash($new, PASSWORD_DEFAULT);
+            $upd = query("UPDATE users SET password='" . escape_string($hash) . "' WHERE id={$user_id} LIMIT 1");
+            if ($upd) {
+                $success = 'Password berhasil diperbarui.';
+            } else {
+                $error = 'Gagal memperbarui password.';
+            }
+        }
+    }
+}
+
+?><!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ganti Password - <?php echo htmlspecialchars((strtoupper($role) ?? '')); ?></title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+.container{max-width:600px;margin:40px auto;padding:10px}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.card-header{padding:16px;background:#f5f5f5;font-weight:600}
+.card-body{padding:16px}
+label{display:block;margin-bottom:6px;font-weight:600}
+input[type=password]{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px}
+.btn{display:inline-block;padding:10px 14px;border-radius:6px;border:1px solid #2c7be5;background:#2c7be5;color:#fff;text-decoration:none;cursor:pointer}
+.btn:hover{filter:brightness(0.95)}
+.alert{padding:10px;border-radius:6px;margin:10px 0}
+.alert-success{background:#e6f4ea;color:#1e7e34}
+.alert-error{background:#fdecea;color:#b00020}
+</style>
+</head>
+<body style="background:#f5f7fa;">
+  <div class="container">
+    <div class="card">
+      <div class="card-header">Ganti Password (<?php echo htmlspecialchars((strtoupper($role) ?? '')); ?>)</div>
+      <div class="card-body">
+        <?php if ($success): ?><div class="alert alert-success"><i class="fas fa-check-circle" aria-hidden="true"></i> <?php echo htmlspecialchars(($success) ?? ''); ?></div><?php endif; ?>
+        <?php if ($error): ?><div class="alert alert-error"><i class="fas fa-times-circle" aria-hidden="true"></i> <?php echo htmlspecialchars(($error) ?? ''); ?></div><?php endif; ?>
+        <form method="post">
+          <div style="margin-bottom:10px">
+            <label>Password Lama</label>
+            <input type="password" name="old_password" required />
+          </div>
+          <div style="margin-bottom:10px">
+            <label>Password Baru</label>
+            <input type="password" name="new_password" minlength="6" required />
+          </div>
+          <div style="margin-bottom:10px">
+            <label>Konfirmasi Password Baru</label>
+            <input type="password" name="confirm_password" minlength="6" required />
+          </div>
+          <div>
+            <button type="submit" class="btn">Simpan</button>
+            <?php if ($role==='guru'): ?>
+              <a href="guru/dashboard.php" class="btn back-btn" style="background:#64748b;border-color:#64748b" onclick="var href=this.getAttribute('href'); document.body.style.transition='opacity .22s'; document.body.style.opacity=0; setTimeout(function(){ if (history.length>1) { history.back(); } else { window.location=href; } },220); return false;"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali</a>
+            <?php else: ?>
+              <a href="siswa/dashboard.php" class="btn back-btn" style="background:#64748b;border-color:#64748b" title="Kembali" onclick="var href=this.getAttribute('href'); document.body.style.transition='opacity .22s'; document.body.style.opacity=0; setTimeout(function(){ if (history.length>1) { history.back(); } else { window.location=href; } },220); return false;"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali</a>
+            <?php endif; ?>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

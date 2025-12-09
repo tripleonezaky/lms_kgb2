@@ -1,0 +1,242 @@
+﻿<?php
+// guru/ujian/bank.php
+// Manajemen Bank Soal Guru: list, filter, hapus, dan impor ke ujian
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/../../includes/check_session.php';
+require_once __DIR__ . '/../../includes/check_role.php';
+check_role(['guru']);
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/functions.php';
+
+$guru_id = (int)$_SESSION['user_id'];
+
+// Buat tabel bank_soal bila belum ada
+@query("CREATE TABLE IF NOT EXISTS bank_soal (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  guru_id INT NOT NULL,
+  mapel_id INT NULL,
+  tipe_soal VARCHAR(64) NOT NULL,
+  pertanyaan TEXT NOT NULL,
+  pilihan_a TEXT NULL,
+  pilihan_b TEXT NULL,
+  pilihan_c TEXT NULL,
+  pilihan_d TEXT NULL,
+  pilihan_e TEXT NULL,
+  jawaban_benar VARCHAR(255) NULL,
+  bobot INT NOT NULL DEFAULT 1,
+  gambar_path VARCHAR(255) NULL,
+  gambar_posisi ENUM('atas','bawah') NULL,
+  video_url VARCHAR(255) NULL,
+  video_posisi ENUM('atas','bawah') NULL,
+  created_at DATETIME NULL,
+  updated_at DATETIME NULL,
+  KEY gi (guru_id),
+  KEY mi (mapel_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+function own_soal_guru($guru_id, $soal_id) {
+    $sql = "SELECT 1 FROM soal s JOIN assignment_guru ag ON ag.id=s.assignment_id WHERE s.id=".(int)$soal_id." AND ag.guru_id=".(int)$guru_id." LIMIT 1";
+    $r = query($sql);
+    return $r && fetch_assoc($r) ? true : false;
+}
+
+$flash = get_flash();
+$action = isset($_GET['action']) ? $_GET['action'] : '';
+
+// Hapus bank soal
+if ($action === 'delete' && isset($_GET['id'])) {
+    $id = (int)$_GET['id'];
+    $cek = query("SELECT id FROM bank_soal WHERE id={$id} AND guru_id={$guru_id} LIMIT 1");
+    if ($cek && fetch_assoc($cek)) {
+        query("DELETE FROM bank_soal WHERE id={$id} LIMIT 1");
+        set_flash('success','Entri bank soal dihapus');
+    } else {
+        set_flash('error','Akses ditolak');
+    }
+    redirect('bank.php');
+}
+
+// Impor terpilih ke ujian
+if ($action === 'import' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $target_soal_id = isset($_POST['target_soal_id']) ? (int)$_POST['target_soal_id'] : 0;
+    $selected = isset($_POST['bank_ids']) ? (array)$_POST['bank_ids'] : [];
+    if ($target_soal_id <= 0 || empty($selected)) {
+        set_flash('error','Pilih ujian tujuan dan minimal satu soal bank.');
+        redirect('bank.php');
+    }
+    if (!own_soal_guru($guru_id, $target_soal_id)) {
+        set_flash('error','Ujian tujuan tidak valid.');
+        redirect('bank.php');
+    }
+    // Ambil urutan terakhir di detail_soal
+    $rLast = query("SELECT COALESCE(MAX(urutan),0) AS last_u FROM detail_soal WHERE soal_id={$target_soal_id}");
+    $rowLast = $rLast ? fetch_assoc($rLast) : ['last_u'=>0];
+    $urut = (int)$rowLast['last_u'];
+
+    // Pastikan kolom tambahan ada di detail_soal
+    @query("ALTER TABLE detail_soal ADD COLUMN gambar_path VARCHAR(255) NULL AFTER pilihan_e");
+    @query("ALTER TABLE detail_soal ADD COLUMN gambar_posisi ENUM('atas','bawah') NULL AFTER gambar_path");
+    @query("ALTER TABLE detail_soal ADD COLUMN video_url VARCHAR(255) NULL AFTER gambar_posisi");
+    @query("ALTER TABLE detail_soal ADD COLUMN video_posisi ENUM('atas','bawah') NULL AFTER video_url");
+
+    $imported = 0;
+    foreach ($selected as $bid) {
+        $bid = (int)$bid;
+        $bs = query("SELECT * FROM bank_soal WHERE id={$bid} AND guru_id={$guru_id} LIMIT 1");
+        $row = $bs ? fetch_assoc($bs) : null;
+        if (!$row) continue;
+        $urut++;
+        $tipe = escape_string($row['tipe_soal']);
+        $pert = escape_string($row['pertanyaan']);
+        $pa = escape_string($row['pilihan_a']);
+        $pb = escape_string($row['pilihan_b']);
+        $pc = escape_string($row['pilihan_c']);
+        $pd = escape_string($row['pilihan_d']);
+        $pe = escape_string($row['pilihan_e']);
+        $kunci = escape_string($row['jawaban_benar']);
+        $bobot = (int)$row['bobot']; if ($bobot<=0) $bobot=1;
+        $gbr = escape_string((string)$row['gambar_path']);
+        $gpos = escape_string((string)$row['gambar_posisi']);
+        $vurl = escape_string((string)$row['video_url']);
+        $vpos = escape_string((string)$row['video_posisi']);
+        $now = date('Y-m-d H:i:s');
+        $sqlIns = "INSERT INTO detail_soal (soal_id, tipe_soal, pertanyaan, pilihan_a, pilihan_b, pilihan_c, pilihan_d, pilihan_e, jawaban_benar, bobot, urutan, gambar_path, gambar_posisi, video_url, video_posisi, created_at, updated_at) VALUES (".
+            "{$target_soal_id},'{$tipe}','{$pert}','{$pa}','{$pb}','{$pc}','{$pd}','{$pe}','{$kunci}',{$bobot},{$urut},".
+            ($gbr!==''?"'{$gbr}'":"NULL").",".
+            ($gpos!==''?"'{$gpos}'":"NULL").",".
+            ($vurl!==''?"'{$vurl}'":"NULL").",".
+            ($vpos!==''?"'{$vpos}'":"NULL").",'{$now}','{$now}')";
+        if (query($sqlIns)) { $imported++; }
+    }
+    if ($imported>0) set_flash('success',"Berhasil mengimpor {$imported} soal ke ujian."); else set_flash('error','Tidak ada soal yang diimpor.');
+    redirect('bank.php');
+}
+
+// Data untuk filter mapel dan daftar ujian milik guru
+$mapel_list = fetch_all(query("SELECT DISTINCT mp.id, mp.nama_mapel FROM assignment_guru ag JOIN mata_pelajaran mp ON mp.id=ag.mapel_id WHERE ag.guru_id={$guru_id} ORDER BY mp.nama_mapel"));
+$ujian_list = fetch_all(query("SELECT s.id, s.judul_ujian FROM soal s JOIN assignment_guru ag ON ag.id=s.assignment_id WHERE ag.guru_id={$guru_id} ORDER BY s.id DESC"));
+
+// Filter by mapel
+$mapel_id = isset($_GET['mapel_id']) ? (int)$_GET['mapel_id'] : 0;
+$where = "WHERE guru_id={$guru_id}";
+if ($mapel_id>0) { $where .= " AND mapel_id={$mapel_id}"; }
+$bank_rows = fetch_all(query("SELECT * FROM bank_soal {$where} ORDER BY id DESC"));
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bank Soal</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    .container{max-width:1100px;margin:16px auto;padding:12px}
+    .card{background:#fff;border:1px solid #ddd;border-radius:10px;margin-bottom:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    .card-header{padding:14px 18px;background:#f5f5f5;font-weight:600}
+    .card-body{padding:18px}
+    .row{display:flex;gap:14px;flex-wrap:wrap}
+    .row .col{flex:1 1 280px}
+    label{display:block;margin-bottom:6px;font-weight:600}
+    select{width:100%;padding:12px;border:1px solid #ced4da;border-radius:8px;background:#fff;box-sizing:border-box}
+    .btn{display:inline-block;padding:10px 14px;border-radius:8px;border:1px solid #2c7be5;background:#2c7be5;color:#fff;text-decoration:none;cursor:pointer}
+    .btn-danger{background:#d9534f;border-color:#d9534f}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border:1px solid #e5e5e5;padding:12px}
+    .table th{background:#fafafa;text-align:left}
+    .alert{padding:12px;border-radius:8px;margin-bottom:12px}
+    .alert-error{background:#fdecea;color:#b00020}
+    .alert-success{background:#e6f4ea;color:#1e7e34}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">Bank Soal</div>
+      <div class="card-body">
+        <div class="row" style="align-items:flex-end">
+          <div class="col">
+            <label>Filter Mapel</label>
+            <form method="get" style="display:flex;gap:8px">
+              <select name="mapel_id">
+                <option value="0">- Semua Mapel -</option>
+                <?php foreach ($mapel_list as $m): ?>
+                  <option value="<?php echo (int)$m['id']; ?>" <?php echo ($mapel_id===(int)$m['id']?'selected':''); ?>><?php echo htmlspecialchars(($m['nama_mapel']) ?? ''); ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button class="btn" type="submit">Terapkan</button>
+            </form>
+          </div>
+          <div class="col">
+            <label>Impor ke Ujian</label>
+            <form method="post" action="bank.php?action=import" id="import-form" style="display:flex;gap:8px;align-items:center">
+              <select name="target_soal_id" required>
+                <option value="">- Pilih Ujian -</option>
+                <?php foreach ($ujian_list as $u): ?>
+                  <option value="<?php echo (int)$u['id']; ?>"><?php echo htmlspecialchars(($u['judul_ujian']) ?? ''); ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button class="btn" type="submit">Impor Terpilih</button>
+            </form>
+          </div>
+          <div class="col" style="text-align:right">
+            <a class="btn back-btn" href="index.php" onclick="var href=this.getAttribute('href'); document.body.style.transition='opacity .22s'; document.body.style.opacity=0; setTimeout(function(){ if (history.length>1) { history.back(); } else { window.location=href; } },220); return false;"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali ke Ujian</a>
+          </div>
+        </div>
+        <?php if ($flash): ?>
+          <div class="alert alert-<?php echo htmlspecialchars(($flash['type']) ?? ''); ?>"><?php echo htmlspecialchars(($flash['message']) ?? ''); ?></div>
+        <?php endif; ?>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:30px"><input type="checkbox" onclick="toggleAll(this)"></th>
+                <th>Mapel</th>
+                <th>Tipe</th>
+                <th>Pertanyaan</th>
+                <th>Kunci</th>
+                <th>Bobot</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (!$bank_rows): ?>
+                <tr><td colspan="7">Belum ada soal di bank.</td></tr>
+              <?php else: foreach ($bank_rows as $b): ?>
+                <?php
+                  $mapelNama = '-';
+                  if (!empty($b['mapel_id'])) {
+                    $r = query("SELECT nama_mapel FROM mata_pelajaran WHERE id=".(int)$b['mapel_id']." LIMIT 1");
+                    $x = $r ? fetch_assoc($r) : null; $mapelNama = $x ? $x['nama_mapel'] : '-';
+                  }
+                ?>
+                <tr>
+                  <td data-label="Pilih"><input type="checkbox" form="import-form" name="bank_ids[]" value="<?php echo (int)$b['id']; ?>" /></td>
+                  <td data-label="Mapel"><?php echo htmlspecialchars(($mapelNama) ?? ''); ?></td>
+                  <td data-label="Tipe"><?php echo htmlspecialchars(($b['tipe_soal']) ?? ''); ?></td>
+                  <td data-label="Pertanyaan" style="min-width:320px"><?php echo nl2br(htmlspecialchars(($b['pertanyaan']) ?? '')); ?></td>
+                  <td data-label="Kunci"><?php echo htmlspecialchars(($b['jawaban_benar']) ?? ''); ?></td>
+                  <td data-label="Bobot"><?php echo (int)$b['bobot']; ?></td>
+                  <td class="actions" data-label="Aksi">
+                    <a class="btn btn-danger icon-btn" href="bank.php?action=delete&id=<?php echo (int)$b['id']; ?>" title="Hapus" aria-label="Hapus" onclick="return confirm('Hapus entri bank ini?')"><i class="fas fa-trash" aria-hidden="true"></i></a>
+                  </td>
+                </tr>
+              <?php endforeach; endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function toggleAll(cb){
+      const inputs = document.querySelectorAll('input[name="bank_ids[]"]');
+      inputs.forEach(i=>{ i.checked = cb.checked; });
+    }
+  </script>
+</body>
+</html>
+
+

@@ -1,0 +1,166 @@
+﻿<?php
+/**
+ * File: admin/ganti_password_user.php
+ * Fitur: Admin mengganti password user (semua role) tanpa perlu password lama
+ */
+require_once __DIR__ . '/../includes/auth_admin.php';
+require_once __DIR__ . '/../config/database.php';
+
+function flash($k){ if(isset($_SESSION[$k])){ $m=$_SESSION[$k]; unset($_SESSION[$k]); return $m;} return null; }
+
+$success = '';
+$error = '';
+
+// Proses ubah password
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_id'])) {
+    $user_id = (int)($_POST['user_id'] ?? 0);
+    $pwd = trim($_POST['password'] ?? '');
+    $pwd2 = trim($_POST['password_confirm'] ?? '');
+
+    if ($user_id <= 0) {
+        $error = 'User tidak valid';
+    } elseif ($pwd === '' || $pwd2 === '') {
+        $error = 'Password dan konfirmasi wajib diisi';
+    } elseif ($pwd !== $pwd2) {
+        $error = 'Konfirmasi password tidak sama';
+    } elseif (strlen($pwd) < 6) {
+        $error = 'Password minimal 6 karakter';
+    } else {
+        $hash = password_hash($pwd, PASSWORD_DEFAULT);
+        $upd = query("UPDATE users SET password='" . escape_string($hash) . "' WHERE id={$user_id} LIMIT 1");
+        if ($upd) {
+            $success = 'Password berhasil diperbarui.';
+        } else {
+            $error = 'Gagal memperbarui password.';
+        }
+    }
+}
+
+// Pencarian user
+$q = trim($_GET['q'] ?? '');
+$users = [];
+if ($q !== '') {
+    $qesc = escape_string('%'.$q.'%');
+    $sql = "SELECT id, username, nama_lengkap, role, email FROM users
+            WHERE username LIKE '{$qesc}' OR nama_lengkap LIKE '{$qesc}' OR email LIKE '{$qesc}'
+            ORDER BY role, nama_lengkap LIMIT 50";
+    $res = query($sql);
+    if ($res) $users = fetch_all($res);
+}
+
+// Detail user jika dipilih
+$selected_user = null;
+$user_id = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
+if ($user_id > 0) {
+    $res = query("SELECT id, username, nama_lengkap, role, email FROM users WHERE id={$user_id} LIMIT 1");
+    $selected_user = $res ? fetch_assoc($res) : null;
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ganti Password User - Admin</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/_overrides.css">
+<style>
+.container{max-width:1000px;margin:10px auto;padding:10px}
+.card{background:#fff;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.card-header{padding:12px 16px;background:#f5f5f5;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.card-body{padding:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.col{flex:1 1 280px}
+label{display:block;margin-bottom:6px;font-weight:600}
+input[type=text],input[type=password]{width:100%;padding:10px;border:1px solid #ced4da;border-radius:6px}
+.btn{display:inline-block;padding:10px 14px;border-radius:6px;border:1px solid #2c7be5;background:#2c7be5;color:#fff;text-decoration:none;cursor:pointer}
+.btn:hover{filter:brightness(0.95)}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border:1px solid #e5e5e5;padding:10px}
+.table th{background:#fafafa;text-align:left}
+.alert{padding:10px;border-radius:6px;margin:10px 0}
+.alert-success{background:#e6f4ea;color:#1e7e34}
+.alert-error{background:#fdecea;color:#b00020}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px}
+.badge-role{background:#eff6ff;color:#1d4ed8}
+</style>
+</head>
+<body>
+<?php include 'sidebar.php'; ?>
+<div class="main-content">
+  <div class="top-bar">
+    <h1>🔐 Ganti Password User</h1>
+    <div class="user-info">
+      <span>Admin: <strong><?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?></strong></span>
+      <a href="../logout.php" class="btn-logout">Logout</a>
+    </div>
+  </div>
+
+  <div class="content-area">
+    <?php if ($success): ?><div class="alert alert-success"><i class="fas fa-check-circle" aria-hidden="true"></i> <?php echo $success; ?></div><?php endif; ?>
+    <?php if ($error): ?><div class="alert alert-error"><i class="fas fa-times-circle" aria-hidden="true"></i> <?php echo $error; ?></div><?php endif; ?>
+
+    <div class="card">
+      <div class="card-header">Cari User</div>
+      <div class="card-body">
+        <form method="get" class="row">
+          <div class="col">
+            <label>Ketik Username / Nama / Email</label>
+            <input type="text" name="q" value="<?php echo htmlspecialchars(($q) ?? ''); ?>" placeholder="misal: KGB2G001 atau nama/email">
+          </div>
+          <div class="col" style="align-self:end"><button class="btn" type="submit">Cari</button></div>
+        </form>
+        <?php if ($q !== ''): ?>
+          <div style="margin-top:10px">
+            <table class="table">
+              <thead><tr><th>Role</th><th>Username</th><th>Nama</th><th>Email</th><th>Aksi</th></tr></thead>
+              <tbody>
+                <?php if (empty($users)): ?>
+                  <tr><td colspan="5">Tidak ada hasil untuk pencarian ini.</td></tr>
+                <?php else: foreach ($users as $u): ?>
+                  <tr>
+                    <td><span class="badge badge-role"><?php echo htmlspecialchars(($u['role']) ?? ''); ?></span></td>
+                    <td><?php echo htmlspecialchars(($u['username']) ?? ''); ?></td>
+                    <td><?php echo htmlspecialchars(($u['nama_lengkap']) ?? ''); ?></td>
+                    <td><?php echo htmlspecialchars($u['email'] ?? '-'); ?></td>
+                    <td><a class="btn" href="?user_id=<?php echo (int)$u['id']; ?>">Pilih</a></td>
+                  </tr>
+                <?php endforeach; endif; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Form Ganti Password</div>
+      <div class="card-body">
+        <?php if (!$selected_user): ?>
+          <div class="alert">Silakan pilih user dari hasil pencarian untuk mengganti password.</div>
+        <?php else: ?>
+          <div style="margin-bottom:10px">
+            <div><strong>User:</strong> <?php echo htmlspecialchars(($selected_user['nama_lengkap']) ?? ''); ?> (<?php echo htmlspecialchars(($selected_user['username']) ?? ''); ?>)</div>
+            <div><strong>Role:</strong> <?php echo htmlspecialchars(($selected_user['role']) ?? ''); ?></div>
+          </div>
+          <form method="post">
+            <input type="hidden" name="user_id" value="<?php echo (int)$selected_user['id']; ?>" />
+            <div class="row">
+              <div class="col">
+                <label>Password Baru</label>
+                <input type="password" name="password" required minlength="6" placeholder="Minimal 6 karakter" />
+              </div>
+              <div class="col">
+                <label>Konfirmasi Password Baru</label>
+                <input type="password" name="password_confirm" required minlength="6" />
+              </div>
+            </div>
+            <div style="margin-top:10px"><button class="btn" type="submit">Simpan Password</button></div>
+          </form>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

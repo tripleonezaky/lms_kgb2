@@ -1,0 +1,241 @@
+﻿<?php
+/**
+ * File: admin/kelola_mapel.php
+ * Fungsi: CRUD Mata Pelajaran sesuai skema DB
+ */
+require_once __DIR__ . '/../includes/auth_admin.php';
+require_once __DIR__ . '/../config/database.php';
+
+function flash($k){ if(isset($_SESSION[$k])){ $m=$_SESSION[$k]; unset($_SESSION[$k]); return $m;} return null; }
+
+// Tambah Mapel
+if(isset($_POST['tambah_mapel'])){
+    $kode = mysqli_real_escape_string($conn, trim($_POST['kode_mapel']));
+    $nama = mysqli_real_escape_string($conn, trim($_POST['nama_mapel']));
+    $kat  = mysqli_real_escape_string($conn, trim($_POST['kategori']));
+    if(!in_array($kat, ['Umum','Produktif','Muatan Lokal'], true)){
+        $_SESSION['error'] = 'Kategori tidak valid!';
+    } else {
+        $dup = mysqli_query($conn, "SELECT id FROM mata_pelajaran WHERE kode_mapel='$kode' LIMIT 1");
+        if($dup && mysqli_num_rows($dup)>0){
+            $_SESSION['error'] = 'Kode mapel sudah terdaftar!';
+        } else {
+            $ins = mysqli_query($conn, "INSERT INTO mata_pelajaran(kode_mapel,nama_mapel,kategori) VALUES('$kode','$nama','$kat')");
+            $_SESSION[$ins? 'success':'error'] = $ins? 'Mata pelajaran berhasil ditambahkan!' : ('Gagal menambahkan: '.mysqli_error($conn));
+        }
+    }
+    header('Location: kelola_mapel.php'); exit();
+}
+
+// Edit Mapel
+if(isset($_POST['edit_mapel'])){
+    $id   = (int)$_POST['id'];
+    $kode = mysqli_real_escape_string($conn, trim($_POST['kode_mapel']));
+    $nama = mysqli_real_escape_string($conn, trim($_POST['nama_mapel']));
+    $kat  = mysqli_real_escape_string($conn, trim($_POST['kategori']));
+    if(!in_array($kat, ['Umum','Produktif','Muatan Lokal'], true)){
+        $_SESSION['error'] = 'Kategori tidak valid!';
+    } else {
+        $dup = mysqli_query($conn, "SELECT id FROM mata_pelajaran WHERE kode_mapel='$kode' AND id!=$id LIMIT 1");
+        if($dup && mysqli_num_rows($dup)>0){
+            $_SESSION['error'] = 'Kode mapel sudah terpakai!';
+        } else {
+            $upd = mysqli_query($conn, "UPDATE mata_pelajaran SET kode_mapel='$kode', nama_mapel='$nama', kategori='$kat' WHERE id=$id");
+            $_SESSION[$upd? 'success':'error'] = $upd? 'Mata pelajaran berhasil diupdate!' : ('Gagal mengupdate: '.mysqli_error($conn));
+        }
+    }
+    header('Location: kelola_mapel.php'); exit();
+}
+
+// Hapus Mapel
+if(isset($_GET['hapus'])){
+    $id = (int)$_GET['hapus'];
+    $cek1 = mysqli_query($conn, "SELECT id FROM assignment_guru WHERE mapel_id=$id LIMIT 1");
+    $cek2 = mysqli_query($conn, "SELECT id FROM nilai WHERE mapel_id=$id LIMIT 1");
+    if(($cek1 && mysqli_num_rows($cek1)>0) || ($cek2 && mysqli_num_rows($cek2)>0)){
+        $_SESSION['error'] = 'Tidak dapat menghapus! Masih ada data terkait (assignment/nilai).';
+    } else {
+        $del = mysqli_query($conn, "DELETE FROM mata_pelajaran WHERE id=$id");
+        $_SESSION[$del? 'success':'error'] = $del? 'Mata pelajaran berhasil dihapus!' : ('Gagal menghapus: '.mysqli_error($conn));
+    }
+    header('Location: kelola_mapel.php'); exit();
+}
+
+// List & Search & Pagination
+$limit=10; $page = isset($_GET['page'])? max(1,(int)$_GET['page']) : 1; $offset = ($page-1)*$limit;
+$search = isset($_GET['search'])? mysqli_real_escape_string($conn, trim($_GET['search'])) : '';
+$where = '';
+if($search!==''){
+    $where = "WHERE kode_mapel LIKE '%$search%' OR nama_mapel LIKE '%$search%' OR kategori LIKE '%$search%'";
+}
+$q = "SELECT * FROM mata_pelajaran $where ORDER BY nama_mapel ASC LIMIT $limit OFFSET $offset";
+$r = mysqli_query($conn,$q);
+$qt = mysqli_query($conn, "SELECT COUNT(*) total FROM mata_pelajaran $where");
+$total = $qt? (int)mysqli_fetch_assoc($qt)['total'] : 0; $pages = max(1,(int)ceil($total/$limit));
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kelola Mata Pelajaran - LMS KGB2</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/_overrides.css">
+</head>
+<body>
+<?php include 'sidebar.php'; ?>
+<div class="main-content">
+    <div class="top-bar">
+        <h1><i class="fas fa-book" aria-hidden="true"></i> Kelola Mata Pelajaran</h1>
+        <div class="user-info">
+            <span>Admin: <strong><?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?></strong></span>
+            <a href="../logout.php" class="btn-logout">Logout</a>
+        </div>
+    </div>
+    <div class="content-area">
+        <?php if($m=flash('success')): ?><div class="alert alert-success"><i class="fas fa-check-circle" aria-hidden="true"></i> <?php echo $m; ?></div><?php endif; ?>
+        <?php if($m=flash('error')): ?><div class="alert alert-danger"><i class="fas fa-times-circle" aria-hidden="true"></i> <?php echo $m; ?></div><?php endif; ?>
+
+        <div class="card">
+            <div class="card-header"><h3>📋 Daftar Mata Pelajaran</h3></div>
+            <div class="card-body">
+                <div class="card-toolbar" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <form method="GET" action="" style="display:flex; gap:10px;">
+                        <input type="text" name="search" placeholder="🔍 Cari Kode / Nama / Kategori..." value="<?php echo htmlspecialchars(($search) ?? ''); ?>" style="padding:8px 15px; border:1px solid #ddd; border-radius:5px; width:320px;">
+                        <button type="submit" class="btn btn-secondary">Cari</button>
+                        <?php if($search!==''): ?><a href="kelola_mapel.php" class="btn btn-secondary">Reset</a><?php endif; ?>
+                    </form>
+                    <button class="btn btn-primary" onclick="openModal('modalTambah')">➕ Tambah Mapel</button>
+                </div>
+                <div style="margin-bottom:12px;"><strong>Total:</strong> <span class="badge badge-primary"><?php echo number_format($total); ?></span></div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Kode</th>
+                                <th>Nama Mapel</th>
+                                <th>Kategori</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if($r && mysqli_num_rows($r)>0): $no=$offset+1; while($row=mysqli_fetch_assoc($r)): ?>
+                            <tr>
+                                <td><?php echo $no++; ?></td>
+                                <td><span class="badge badge-info"><?php echo htmlspecialchars(($row['kode_mapel']) ?? ''); ?></span></td>
+                                <td><strong><?php echo htmlspecialchars(($row['nama_mapel']) ?? ''); ?></strong></td>
+                                <td><?php echo htmlspecialchars(($row['kategori']) ?? ''); ?></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-action btn-warning" title="Edit" onclick='openEdit(<?php echo json_encode($row, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>)'><i class="fas fa-pen" aria-hidden="true"></i></button>
+                                        <a href="?hapus=<?php echo $row['id']; ?>" class="btn-action btn-danger" onclick="return confirm('Hapus mapel ini?')" title="Hapus">🗑️</a>
+                                        <a href="delete_force.php?entity=mapel&id=<?php echo $row['id']; ?>&redirect=<?php echo urlencode('kelola_mapel.php'); ?>" class="btn-action btn-danger" onclick="return confirm('Hapus Paksa: Mapel dan seluruh data terkait (assignment/nilai) akan dihapus. Lanjutkan?')" title="Hapus Paksa"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endwhile; else: ?>
+                            <tr><td colspan="5" style="text-align:center; padding:30px; color:#999;">Tidak ada data</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php 
+                    $start = $total > 0 ? ($offset + 1) : 0;
+                    $end = min($offset + $limit, $total);
+                ?>
+                <div class="pagination-bar">
+                    <div class="pagination-info">Jumlah: <?php echo $start; ?>–<?php echo $end; ?> / <?php echo number_format($total); ?></div>
+                    <?php if($pages>1): ?>
+                    <div class="pagination-box">
+                        <?php if($page>1): ?>
+                            <a class="page-link" href="?page=<?php echo $page-1; ?><?php echo $search!==''? '&search='.urlencode($search):''; ?>">« Prev</a>
+                        <?php else: ?>
+                            <span class="page-link disabled">« Prev</span>
+                        <?php endif; ?>
+                        <?php for($i=1;$i<=$pages;$i++): ?>
+                            <a class="page-link <?php echo $i==$page? 'active':''; ?>" href="?page=<?php echo $i; ?><?php echo $search!==''? '&search='.urlencode($search):''; ?>"><?php echo $i; ?></a>
+                        <?php endfor; ?>
+                        <?php if($page<$pages): ?>
+                            <a class="page-link" href="?page=<?php echo $page+1; ?><?php echo $search!==''? '&search='.urlencode($search):''; ?>">Next »</a>
+                        <?php else: ?>
+                            <span class="page-link disabled">Next »</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah -->
+<div id="modalTambah" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>➕ Tambah Mata Pelajaran</h3><button class="modal-close" onclick="closeModal('modalTambah')">&times;</button></div>
+    <form method="POST" action="">
+      <div class="modal-body">
+        <div class="form-row" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+          <div class="form-group"><label>Kode Mapel *</label><input type="text" name="kode_mapel" required maxlength="20" placeholder="Contoh: MP001"></div>
+          <div class="form-group"><label>Nama Mapel *</label><input type="text" name="nama_mapel" required maxlength="100" placeholder="Contoh: Matematika"></div>
+          <div class="form-group"><label>Kategori *</label>
+            <select name="kategori" required>
+              <option value="">-- Pilih Kategori --</option>
+              <option value="Umum">Umum</option>
+              <option value="Produktif">Produktif</option>
+              <option value="Muatan Lokal">Muatan Lokal</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modalTambah')">Batal</button><button type="submit" name="tambah_mapel" class="btn btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Simpan</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Edit -->
+<div id="modalEdit" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h3><i class="fas fa-pen" aria-hidden="true"></i> Edit Mata Pelajaran</h3><button class="modal-close" onclick="closeModal('modalEdit')">&times;</button></div>
+    <form method="POST" action="">
+      <input type="hidden" name="id" id="edit_id">
+      <div class="modal-body">
+        <div class="form-row" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+          <div class="form-group"><label>Kode Mapel *</label><input type="text" name="kode_mapel" id="edit_kode" required maxlength="20"></div>
+          <div class="form-group"><label>Nama Mapel *</label><input type="text" name="nama_mapel" id="edit_nama" required maxlength="100"></div>
+          <div class="form-group"><label>Kategori *</label>
+            <select name="kategori" id="edit_kategori" required>
+              <option value="Umum">Umum</option>
+              <option value="Produktif">Produktif</option>
+              <option value="Muatan Lokal">Muatan Lokal</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modalEdit')">Batal</button><button type="submit" name="edit_mapel" class="btn btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Update</button></div>
+    </form>
+  </div>
+</div>
+
+<script src="../assets/js/script.js"></script>
+<script>
+function openEdit(d){
+  document.getElementById('edit_id').value = d.id;
+  document.getElementById('edit_kode').value = d.kode_mapel;
+  document.getElementById('edit_nama').value = d.nama_mapel;
+  document.getElementById('edit_kategori').value = d.kategori;
+  openModal('modalEdit');
+}
+</script>
+<style>
+.pagination-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:15px}
+.pagination-info{padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;color:#334155;background:#fff}
+.pagination-box{display:flex;gap:6px;flex-wrap:wrap}
+.page-link{display:inline-block;padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;color:#334155;background:#fff;text-decoration:none}
+.page-link:hover{border-color:#1e5ba8;color:#1e5ba8}
+.page-link.active{background:#1e5ba8;color:#fff;border-color:#1e5ba8}
+.page-link.disabled{opacity:.5;pointer-events:none}
+</style>
+</body>
+</html>
+

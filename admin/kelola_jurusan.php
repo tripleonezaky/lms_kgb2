@@ -1,0 +1,205 @@
+﻿<?php
+/**
+ * File: admin/kelola_jurusan.php
+ * Fungsi: CRUD Jurusan sesuai skema DB
+ */
+require_once __DIR__ . '/../includes/auth_admin.php';
+require_once __DIR__ . '/../config/database.php';
+
+function flash($k){ if(isset($_SESSION[$k])){ $m=$_SESSION[$k]; unset($_SESSION[$k]); return $m;} return null; }
+
+// Tambah Jurusan
+if(isset($_POST['tambah_jurusan'])){
+    $kode = mysqli_real_escape_string($conn, trim($_POST['kode_jurusan']));
+    $nama = mysqli_real_escape_string($conn, trim($_POST['nama_jurusan']));
+    $sing = mysqli_real_escape_string($conn, trim($_POST['singkatan']));
+    $desk = mysqli_real_escape_string($conn, trim($_POST['deskripsi']));
+
+    $dup = mysqli_query($conn, "SELECT id FROM jurusan WHERE kode_jurusan='$kode' LIMIT 1");
+    if($dup && mysqli_num_rows($dup)>0){
+        $_SESSION['error'] = 'Kode jurusan sudah terdaftar!';
+    } else {
+        $desk_val = $desk!==''? "'".$desk."'" : 'NULL';
+        $ins = mysqli_query($conn, "INSERT INTO jurusan(kode_jurusan,nama_jurusan,singkatan,deskripsi) VALUES('$kode','$nama','$sing',$desk_val)");
+        $_SESSION[$ins? 'success':'error'] = $ins? 'Jurusan berhasil ditambahkan!' : ('Gagal menambahkan: '.mysqli_error($conn));
+    }
+    header('Location: kelola_jurusan.php'); exit();
+}
+
+// Edit Jurusan
+if(isset($_POST['edit_jurusan'])){
+    $id   = (int)$_POST['id'];
+    $kode = mysqli_real_escape_string($conn, trim($_POST['kode_jurusan']));
+    $nama = mysqli_real_escape_string($conn, trim($_POST['nama_jurusan']));
+    $sing = mysqli_real_escape_string($conn, trim($_POST['singkatan']));
+    $desk = mysqli_real_escape_string($conn, trim($_POST['deskripsi']));
+
+    $dup = mysqli_query($conn, "SELECT id FROM jurusan WHERE kode_jurusan='$kode' AND id!=$id LIMIT 1");
+    if($dup && mysqli_num_rows($dup)>0){
+        $_SESSION['error'] = 'Kode jurusan sudah terpakai!';
+    } else {
+        $desk_set = $desk!==''? "deskripsi='".$desk."'" : "deskripsi=NULL";
+        $upd = mysqli_query($conn, "UPDATE jurusan SET kode_jurusan='$kode', nama_jurusan='$nama', singkatan='$sing', $desk_set WHERE id=$id");
+        $_SESSION[$upd? 'success':'error'] = $upd? 'Jurusan berhasil diupdate!' : ('Gagal mengupdate: '.mysqli_error($conn));
+    }
+    header('Location: kelola_jurusan.php'); exit();
+}
+
+// Hapus Jurusan
+if(isset($_GET['hapus'])){
+    $id = (int)$_GET['hapus'];
+    $cek = mysqli_query($conn, "SELECT id FROM kelas WHERE jurusan_id=$id LIMIT 1");
+    if($cek && mysqli_num_rows($cek)>0){
+        $_SESSION['error'] = 'Tidak dapat menghapus! Masih ada kelas terkait.';
+    } else {
+        $del = mysqli_query($conn, "DELETE FROM jurusan WHERE id=$id");
+        $_SESSION[$del? 'success':'error'] = $del? 'Jurusan berhasil dihapus!' : ('Gagal menghapus: '.mysqli_error($conn));
+    }
+    header('Location: kelola_jurusan.php'); exit();
+}
+
+// List & Search & Pagination
+$limit=10; $page = isset($_GET['page'])? max(1,(int)$_GET['page']) : 1; $offset = ($page-1)*$limit;
+$search = isset($_GET['search'])? mysqli_real_escape_string($conn, trim($_GET['search'])) : '';
+$where = '';
+if($search!==''){
+    $where = "WHERE kode_jurusan LIKE '%$search%' OR nama_jurusan LIKE '%$search%' OR singkatan LIKE '%$search%'";
+}
+$q = "SELECT * FROM jurusan $where ORDER BY nama_jurusan ASC LIMIT $limit OFFSET $offset";
+$r = mysqli_query($conn,$q);
+$qt = mysqli_query($conn, "SELECT COUNT(*) total FROM jurusan $where");
+$total = $qt? (int)mysqli_fetch_assoc($qt)['total'] : 0; $pages = max(1,(int)ceil($total/$limit));
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kelola Jurusan - LMS KGB2</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/_overrides.css">
+</head>
+<body>
+<?php include 'sidebar.php'; ?>
+<div class="main-content">
+    <div class="top-bar">
+        <h1><i class="fas fa-sitemap" aria-hidden="true"></i> Kelola Jurusan</h1>
+        <div class="user-info">
+            <span>Admin: <strong><?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?></strong></span>
+            <a href="../logout.php" class="btn-logout">Logout</a>
+        </div>
+    </div>
+    <div class="content-area">
+        <?php if($m=flash('success')): ?><div class="alert alert-success"><i class="fas fa-check-circle" aria-hidden="true"></i> <?php echo $m; ?></div><?php endif; ?>
+        <?php if($m=flash('error')): ?><div class="alert alert-danger"><i class="fas fa-times-circle" aria-hidden="true"></i> <?php echo $m; ?></div><?php endif; ?>
+
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-list" aria-hidden="true"></i> Daftar Jurusan</h3></div>
+            <div class="card-body">
+                <div class="card-toolbar" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <form method="GET" action="" style="display:flex; gap:10px;">
+                        <input type="text" name="search" placeholder="🔍 Cari Kode / Nama / Singkatan..." value="<?php echo htmlspecialchars(($search) ?? ''); ?>" style="padding:8px 15px; border:1px solid #ddd; border-radius:5px; width:320px;">
+                        <button type="submit" class="btn btn-secondary">Cari</button>
+                        <?php if($search!==''): ?><a href="kelola_jurusan.php" class="btn btn-secondary">Reset</a><?php endif; ?>
+                    </form>
+                    <button class="btn btn-primary" onclick="openModal('modalTambah')">➕ Tambah Jurusan</button>
+                </div>
+                <div style="margin-bottom:12px;"><strong>Total:</strong> <span class="badge badge-primary"><?php echo number_format($total); ?></span></div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Kode</th>
+                                <th>Nama Jurusan</th>
+                                <th>Singkatan</th>
+                                <th>Deskripsi</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if($r && mysqli_num_rows($r)>0): $no=$offset+1; while($row=mysqli_fetch_assoc($r)): ?>
+                            <tr>
+                                <td><?php echo $no++; ?></td>
+                                <td><span class="badge badge-info"><?php echo htmlspecialchars(($row['kode_jurusan']) ?? ''); ?></span></td>
+                                <td><strong><?php echo htmlspecialchars(($row['nama_jurusan']) ?? ''); ?></strong></td>
+                                <td><span class="badge badge-success"><?php echo htmlspecialchars(($row['singkatan']) ?? ''); ?></span></td>
+                                <td><?php echo $row['deskripsi']? htmlspecialchars(($row['deskripsi']) ?? '') : '<em style="color:#999;">-</em>'; ?></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-action btn-warning" title="Edit" onclick='openEdit(<?php echo json_encode($row, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP); ?>)'><i class="fas fa-pen" aria-hidden="true"></i></button>
+                                        <a href="?hapus=<?php echo $row['id']; ?>" class="btn-action btn-danger" onclick="return confirm('Hapus jurusan ini?')" title="Hapus">🗑️</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endwhile; else: ?>
+                            <tr><td colspan="6" style="text-align:center; padding:30px; color:#999;">Tidak ada data</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php if($pages>1): ?>
+                <div class="pagination" style="margin-top:15px; display:flex; gap:6px; flex-wrap:wrap;">
+                    <?php if($page>1): ?><a class="page-link" href="?page=<?php echo $page-1; ?><?php echo $search!==''? '&search='.urlencode($search):''; ?>">« Prev</a><?php endif; ?>
+                    <?php for($i=1;$i<=$pages;$i++): ?>
+                        <a class="page-link <?php echo $i==$page? 'active':''; ?>" href="?page=<?php echo $i; ?><?php echo $search!==''? '&search='.urlencode($search):''; ?>"><?php echo $i; ?></a>
+                    <?php endfor; ?>
+                    <?php if($page<$pages): ?><a class="page-link" href="?page=<?php echo $page+1; ?><?php echo $search!==''? '&search='.urlencode($search):''; ?>">Next »</a><?php endif; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah -->
+<div id="modalTambah" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>➕ Tambah Jurusan</h3><button class="modal-close" onclick="closeModal('modalTambah')">&times;</button></div>
+    <form method="POST" action="">
+      <div class="modal-body">
+        <div class="form-row" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+          <div class="form-group"><label>Kode Jurusan *</label><input type="text" name="kode_jurusan" required maxlength="10" placeholder="Contoh: KK01"></div>
+          <div class="form-group"><label>Nama Jurusan *</label><input type="text" name="nama_jurusan" required maxlength="100" placeholder="Contoh: Teknik Komputer dan Jaringan"></div>
+          <div class="form-group"><label>Singkatan *</label><input type="text" name="singkatan" required maxlength="10" placeholder="Contoh: TKJ"></div>
+          <div class="form-group" style="grid-column: 1/-1;"><label>Deskripsi</label><textarea name="deskripsi" rows="3" placeholder="Deskripsi singkat"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modalTambah')">Batal</button><button type="submit" name="tambah_jurusan" class="btn btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Simpan</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Edit -->
+<div id="modalEdit" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h3><i class="fas fa-pen" aria-hidden="true"></i> Edit Jurusan</h3><button class="modal-close" onclick="closeModal('modalEdit')">&times;</button></div>
+    <form method="POST" action="">
+      <input type="hidden" name="id" id="edit_id">
+      <div class="modal-body">
+        <div class="form-row" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+          <div class="form-group"><label>Kode Jurusan *</label><input type="text" name="kode_jurusan" id="edit_kode" required maxlength="10"></div>
+          <div class="form-group"><label>Nama Jurusan *</label><input type="text" name="nama_jurusan" id="edit_nama" required maxlength="100"></div>
+          <div class="form-group"><label>Singkatan *</label><input type="text" name="singkatan" id="edit_singkatan" required maxlength="10"></div>
+          <div class="form-group" style="grid-column: 1/-1;"><label>Deskripsi</label><textarea name="deskripsi" id="edit_deskripsi" rows="3"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modalEdit')">Batal</button><button type="submit" name="edit_jurusan" class="btn btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Update</button></div>
+    </form>
+  </div>
+</div>
+
+<script src="../assets/js/script.js"></script>
+<script>
+function openEdit(d){
+  document.getElementById('edit_id').value = d.id;
+  document.getElementById('edit_kode').value = d.kode_jurusan;
+  document.getElementById('edit_nama').value = d.nama_jurusan;
+  document.getElementById('edit_singkatan').value = d.singkatan;
+  document.getElementById('edit_deskripsi').value = d.deskripsi||'';
+  openModal('modalEdit');
+}
+</script>
+</body>
+</html>
+

@@ -1,0 +1,197 @@
+<?php
+/**
+ * File: guru/nilai/ujian.php
+ * Fitur: Penilaian Ujian (fokus essay) dan daftar ujian milik guru
+ * - Menampilkan daftar ujian (soal) dari assignment milik guru
+ * - Placeholder penilaian essay berdasarkan jawaban_siswa (bila ada)
+ */
+session_start();
+require_once '../../includes/check_session.php';
+require_once '../../includes/check_role.php';
+check_role(['guru']);
+require_once '../../config/database.php';
+require_once '../../includes/functions.php';
+
+$guru_id = (int)$_SESSION['user_id'];
+
+// Ambil daftar ujian milik guru
+$sql_ujian = "
+    SELECT s.id AS soal_id, s.judul_ujian, s.waktu_mulai, s.waktu_selesai, s.durasi,
+           mp.nama_mapel, k.nama_kelas, ta.nama_tahun_ajaran
+    FROM soal s
+    JOIN assignment_guru ag ON s.assignment_id = ag.id
+    JOIN mata_pelajaran mp ON ag.mapel_id = mp.id
+    JOIN kelas k ON ag.kelas_id = k.id
+    JOIN tahun_ajaran ta ON ag.tahun_ajaran_id = ta.id
+    WHERE ag.guru_id = {$guru_id}
+    ORDER BY s.waktu_mulai DESC
+";
+$res_ujian = query($sql_ujian);
+$ujian_list = fetch_all($res_ujian);
+
+// Ambil sebagian jawaban essay yang belum dinilai (is_correct is null dan nilai_essay null)
+$sql_essay = "
+    SELECT js.id AS jawaban_id, js.soal_id, js.detail_soal_id, js.siswa_id, js.jawaban, js.nilai_essay,
+           u.nama_lengkap, u.nisn, k.nama_kelas, s.judul_ujian
+    FROM jawaban_siswa js
+    JOIN detail_soal ds ON js.detail_soal_id = ds.id AND ds.tipe_soal = 'essay'
+    JOIN soal s ON js.soal_id = s.id
+    JOIN assignment_guru ag ON s.assignment_id = ag.id
+    JOIN users u ON js.siswa_id = u.id
+    JOIN kelas k ON u.kelas_id = k.id
+    WHERE ag.guru_id = {$guru_id} AND js.nilai_essay IS NULL
+    ORDER BY js.created_at ASC
+    LIMIT 20
+";
+$res_essay = query($sql_essay);
+$essay_list = fetch_all($res_essay);
+
+// Proses penilaian essay
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['jawaban_id'])) {
+    $jawaban_id = (int)$_POST['jawaban_id'];
+    $nilai_essay = isset($_POST['nilai_essay']) ? (float)$_POST['nilai_essay'] : null;
+    $feedback = isset($_POST['feedback_guru']) ? escape_string($_POST['feedback_guru']) : '';
+
+    // Validasi kepemilikan guru
+    $sql_check = "
+        SELECT js.id
+        FROM jawaban_siswa js
+        JOIN soal s ON js.soal_id = s.id
+        JOIN assignment_guru ag ON s.assignment_id = ag.id
+        WHERE js.id = {$jawaban_id} AND ag.guru_id = {$guru_id}
+        LIMIT 1
+    ";
+    $res_check = query($sql_check);
+    if ($res_check && fetch_assoc($res_check)) {
+        $nilai_val = $nilai_essay !== null ? number_format($nilai_essay, 2, '.', '') : 'NULL';
+        $sql_upd = "UPDATE jawaban_siswa SET nilai_essay = {$nilai_val}, feedback_guru = '{$feedback}' WHERE id = {$jawaban_id}";
+        if (query($sql_upd)) {
+            set_flash('success', 'Nilai essay berhasil disimpan.');
+        } else {
+            set_flash('error', 'Gagal menyimpan nilai essay.');
+        }
+    } else {
+        set_flash('error', 'Data tidak valid.');
+    }
+    redirect('ujian.php');
+}
+
+$flash = get_flash();
+?><!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penilaian Ujian - Guru</title>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background:#f5f7fa; }
+        .container { max-width: 1100px; margin: 20px auto; }
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+        .grid { display:grid; grid-template-columns: 1fr; gap:20px; }
+        .card { background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.08); }
+        .card-header { padding:16px 20px; border-bottom:1px solid #eee; }
+        .card-body { padding:20px; }
+        table { width:100%; border-collapse: collapse; }
+        th, td { border-bottom:1px solid #eee; padding:10px; text-align:left; }
+        th { background:#f8fafc; }
+        .btn { cursor:pointer; padding:6px 10px; border-radius:6px; border:none; }
+        .btn-primary { background:#1e5ba8; color:#fff; }
+        .btn-secondary { background:#e2e8f0; color:#0f172a; }
+        .alert { padding:10px 12px; border-radius:8px; margin:10px 0; }
+        .alert-success { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+        .alert-error { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+        input[type=number] { width:90px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; }
+        input[type=text] { width:200px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; }
+        .muted { color:#64748b; font-size:12px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2><i class="fas fa-file-alt" aria-hidden="true"></i> Penilaian Ujian</h2>
+        <div>
+            <a href="../dashboard.php" class="btn btn-secondary"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali</a>
+        </div>
+    </div>
+
+    <?php if ($flash): ?>
+        <div class="alert <?php echo $flash['type']==='success'?'alert-success':'alert-error'; ?>"><?php echo htmlspecialchars($flash['message']); ?></div>
+    <?php endif; ?>
+
+    <div class="grid">
+        <div class="card">
+            <div class="card-header"><strong>Daftar Ujian Anda</strong></div>
+            <div class="card-body">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Judul Ujian</th>
+                            <th>Kelas</th>
+                            <th>Mapel</th>
+                            <th>TA</th>
+                            <th>Waktu</th>
+                            <th>Durasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($ujian_list)): ?>
+                            <tr><td colspan="6" style="text-align:center; color:#64748b; padding:16px;">Belum ada ujian.</td></tr>
+                        <?php else: foreach ($ujian_list as $u): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($u['judul_ujian']); ?></td>
+                                <td><?php echo htmlspecialchars($u['nama_kelas']); ?></td>
+                                <td><?php echo htmlspecialchars($u['nama_mapel']); ?></td>
+                                <td><?php echo htmlspecialchars($u['nama_tahun_ajaran']); ?></td>
+                                <td><?php echo htmlspecialchars($u['waktu_mulai']); ?> s/d <?php echo htmlspecialchars($u['waktu_selesai']); ?></td>
+                                <td><?php echo (int)$u['durasi']; ?> menit</td>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+                <p class="muted">Ujian dengan soal essay akan muncul di panel "Essay Belum Dinilai" jika ada jawaban masuk.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><strong>Essay Belum Dinilai</strong></div>
+            <div class="card-body">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Siswa</th>
+                            <th>Kelas</th>
+                            <th>Ujian</th>
+                            <th>Jawaban</th>
+                            <th>Nilai Essay</th>
+                            <th>Feedback</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($essay_list)): ?>
+                            <tr><td colspan="7" style="text-align:center; color:#64748b; padding:16px;">Belum ada jawaban essay yang menunggu penilaian.</td></tr>
+                        <?php else: foreach ($essay_list as $e): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($e['nama_lengkap']); ?> (<?php echo htmlspecialchars($e['nisn']); ?>)</td>
+                                <td><?php echo htmlspecialchars($e['nama_kelas']); ?></td>
+                                <td><?php echo htmlspecialchars($e['judul_ujian']); ?></td>
+                                <td style="max-width:360px; white-space:pre-wrap;">"<?php echo nl2br(htmlspecialchars($e['jawaban'])); ?>"</td>
+                                <td>
+                                    <form method="post" style="display:flex; gap:6px; align-items:center;">
+                                        <input type="hidden" name="jawaban_id" value="<?php echo (int)$e['jawaban_id']; ?>">
+                                        <input type="number" name="nilai_essay" min="0" max="100" step="0.01" placeholder="0-100" required>
+                                </td>
+                                <td><input type="text" name="feedback_guru" placeholder="Feedback (opsional)"></td>
+                                <td><button type="submit" class="btn btn-primary">Simpan</button></td>
+                                    </form>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>
