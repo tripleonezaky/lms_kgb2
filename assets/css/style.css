@@ -396,6 +396,32 @@ select.form-control { cursor: pointer; }
    transform: translateY(0);
 }
 
+/* Ensure page headers align title and actions (back button) properly */
+.header, .page-header, .header-bar, .card-header {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+}
+
+/* Make back-btn sit to the far right when placed alongside a heading */
+.header .back-btn, .page-header .back-btn, .header-bar .back-btn, .card-header .back-btn {
+   margin-left: auto;
+}
+
+/* Ensure back button text is never hidden by global icon-only rules */
+.back-btn {
+   text-indent: 0 !important;
+   overflow: visible !important;
+   width: auto !important;
+}
+
+/* Extra safety: if back-btn placed inside a container that forces inline icons, override it */
+.back-btn, .back-btn * {
+   text-indent: 0 !important;
+   white-space: nowrap !important;
+}
+
 /* Hide 'strip 3' on desktop, keep visible on mobile.
     Support several possible class/id variants to be safe. */
 @media (min-width: 769px) {
