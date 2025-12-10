@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 06, 2025 at 07:43 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- Generation Time: Dec 10, 2025 at 01:37 AM
+-- Server version: 10.4.28-MariaDB
+-- PHP Version: 8.2.4
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -450,10 +450,15 @@ CREATE TABLE `bank_soal` (
   `tipe_soal` varchar(64) NOT NULL,
   `pertanyaan` text NOT NULL,
   `pilihan_a` text DEFAULT NULL,
+  `pilihan_a_path` varchar(255) DEFAULT NULL,
   `pilihan_b` text DEFAULT NULL,
+  `pilihan_b_path` varchar(255) DEFAULT NULL,
   `pilihan_c` text DEFAULT NULL,
+  `pilihan_c_path` varchar(255) DEFAULT NULL,
   `pilihan_d` text DEFAULT NULL,
+  `pilihan_d_path` varchar(255) DEFAULT NULL,
   `pilihan_e` text DEFAULT NULL,
+  `pilihan_e_path` varchar(255) DEFAULT NULL,
   `jawaban_benar` varchar(255) DEFAULT NULL,
   `bobot` int(11) NOT NULL DEFAULT 1,
   `gambar_path` varchar(255) DEFAULT NULL,
@@ -468,56 +473,18 @@ CREATE TABLE `bank_soal` (
 -- Dumping data for table `bank_soal`
 --
 
-INSERT INTO `bank_soal` (`id`, `guru_id`, `mapel_id`, `tipe_soal`, `pertanyaan`, `pilihan_a`, `pilihan_b`, `pilihan_c`, `pilihan_d`, `pilihan_e`, `jawaban_benar`, `bobot`, `gambar_path`, `gambar_posisi`, `video_url`, `video_posisi`, `created_at`, `updated_at`) VALUES
-(1, 39, 99, 'pilihan_ganda', 'Pagi siang sore', '1', '2', '3', '4', '6', 'A', 1, NULL, NULL, NULL, NULL, '2025-12-05 08:03:54', '2025-12-05 08:03:54'),
-(2, 39, 99, 'pilihan_ganda_kompleks', 'nama nama binatang', 'burung', 'kadal', 'buaya', 'mermet', 'apel', 'A,B,C', 1, NULL, NULL, NULL, NULL, '2025-12-05 08:04:26', '2025-12-05 08:04:26'),
-(3, 39, 99, 'benar_salah', 'matahari ada 1', '', '', '', '', '', 'benar', 1, NULL, NULL, NULL, NULL, '2025-12-05 08:04:41', '2025-12-05 08:04:41'),
-(4, 25, 86, 'essay', 'berilah argument tentang video berikut', '', '', '', '', '', '', 1, NULL, NULL, 'https://www.youtube.com/watch?v=Ry5M3uyikFM&list=RDRy5M3uyikFM&start_radio=1', 'atas', '2025-12-06 07:31:48', '2025-12-06 07:31:48'),
-(5, 25, 86, 'essay', 'Perhatikan gambar di bawah ini, dan jelaskan menurut pendapat anda!', '', '', '', '', '', '', 1, 'soal/soal-5-1765002789-6059d0.jpg', 'bawah', NULL, NULL, '2025-12-06 07:33:09', '2025-12-06 07:33:09');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `chat_messages`
---
-
-CREATE TABLE `chat_messages` (
-  `id` int(11) NOT NULL,
-  `thread_id` int(11) NOT NULL,
-  `sender_id` int(11) NOT NULL,
-  `message` text NOT NULL,
-  `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `chat_messages`
---
-
-INSERT INTO `chat_messages` (`id`, `thread_id`, `sender_id`, `message`, `is_deleted`, `created_at`) VALUES
-(1, 1, 25, 'coba tes', 0, '2025-12-02 07:21:43');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `chat_threads`
---
-
-CREATE TABLE `chat_threads` (
-  `id` int(11) NOT NULL,
-  `context_type` enum('assignment','tugas') NOT NULL,
-  `context_id` int(11) NOT NULL,
-  `created_by` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `chat_threads`
---
-
-INSERT INTO `chat_threads` (`id`, `context_type`, `context_id`, `created_by`, `created_at`) VALUES
-(1, 'tugas', 3, 25, '2025-12-02 07:21:34'),
-(2, 'tugas', 4, 25, '2025-12-02 07:27:36');
+INSERT INTO `bank_soal` (`id`, `guru_id`, `mapel_id`, `tipe_soal`, `pertanyaan`, `pilihan_a`, `pilihan_a_path`, `pilihan_b`, `pilihan_b_path`, `pilihan_c`, `pilihan_c_path`, `pilihan_d`, `pilihan_d_path`, `pilihan_e`, `pilihan_e_path`, `jawaban_benar`, `bobot`, `gambar_path`, `gambar_posisi`, `video_url`, `video_posisi`, `created_at`, `updated_at`) VALUES
+(1, 39, 99, 'pilihan_ganda', 'Pagi siang sore', '1', NULL, '2', NULL, '3', NULL, '4', NULL, '6', NULL, 'A', 1, NULL, NULL, NULL, NULL, '2025-12-05 08:03:54', '2025-12-05 08:03:54'),
+(2, 39, 99, 'pilihan_ganda_kompleks', 'nama nama binatang', 'burung', NULL, 'kadal', NULL, 'buaya', NULL, 'mermet', NULL, 'apel', NULL, 'A,B,C', 1, NULL, NULL, NULL, NULL, '2025-12-05 08:04:26', '2025-12-05 08:04:26'),
+(3, 39, 99, 'benar_salah', 'matahari ada 1', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, 'benar', 1, NULL, NULL, NULL, NULL, '2025-12-05 08:04:41', '2025-12-05 08:04:41'),
+(11, 23, 85, 'pilihan_ganda_kompleks', 'Testys', '1', NULL, '2', NULL, '3', NULL, '4', NULL, '5', NULL, 'C,D,E', 1, NULL, NULL, NULL, NULL, '2025-12-08 08:15:40', '2025-12-08 08:15:40'),
+(12, 25, 86, 'pilihan_ganda', 'Show ip route adalah command yang digunakan untuk menampilkan seluruh informasi yang ada pada tabel routing. Jika hanya ingin menampilkan network yang connected saja Command yang benar adalah…', '#show run | section routing connected', NULL, '#show run | section connected', NULL, '#show run | routing connected', NULL, '#show run ip route', NULL, '#show ip route connected', NULL, 'A', 1, NULL, NULL, NULL, NULL, '2025-12-08 08:57:51', '2025-12-08 08:57:51'),
+(13, 25, 86, 'pilihan_ganda', 'Perhatikan command berikut!\r\n    #ip domain-name www.sas2025.id\r\n    #crypto key generate rsa [1024]\r\n\r\nCommand di atas merupakan bagian dari…', 'DNS ', NULL, 'Web ', NULL, 'Server ', NULL, 'SSH Telnet ', NULL, 'Tunnel', NULL, 'D', 1, NULL, NULL, NULL, NULL, '2025-12-08 08:59:12', '2025-12-08 08:59:12'),
+(14, 25, 86, 'pilihan_ganda_kompleks', 'Yang merupakan logical interface adalah… (pilihan lebih dari 1)', 'Interface GigabitEthernet', NULL, 'Interface loopback', NULL, 'Interface Ethernet', NULL, 'Interface VLAN', NULL, 'Interface point to point', NULL, 'B,C,D', 1, NULL, NULL, NULL, NULL, '2025-12-08 09:00:56', '2025-12-08 09:00:56'),
+(15, 25, 86, 'essay', 'Dari tayangan video tersebut, jelaskan dengan lengkap ', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, '', 10, NULL, NULL, 'https://www.youtube.com/watch?v=DNG7QLyCiEc', 'atas', '2025-12-08 09:10:03', '2025-12-08 09:10:03'),
+(16, 25, 86, 'benar_salah', 'IGRP merupakan static route', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, 'salah', 1, NULL, NULL, NULL, NULL, '2025-12-09 01:29:15', '2025-12-09 01:29:15'),
+(17, 25, 86, 'pilihan_ganda', 'produk huawei', '', 'soal_options/soal-36-opt-a-1765241035-80ec7a.png', '', 'soal_options/soal-36-opt-b-1765241035-650096.png', '', 'soal_options/soal-36-opt-c-1765241035-5b6998.png', '', 'soal_options/soal-36-opt-d-1765241035-78e983.jpg', '', 'soal_options/soal-36-opt-e-1765241035-c88981.jpg', 'E', 1, NULL, NULL, NULL, NULL, '2025-12-09 01:43:55', '2025-12-09 01:43:55'),
+(18, 25, 86, 'pilihan_ganda', 'Pada sistem operasi linux berbasis CLI (Command Line Interface), penggunaan command apt install isc-dhcp-server digunakan untuk…', 'edit service dhcp server', '', 'edit network service dhcp server', '', 'install package dhcp server', '', 'uninstall package dhcp server', '', 'menambahkan network baru pada dhcp server', '', 'C', 1, NULL, NULL, NULL, NULL, '2025-12-09 11:38:03', '2025-12-09 11:38:03');
 
 -- --------------------------------------------------------
 
@@ -528,13 +495,19 @@ INSERT INTO `chat_threads` (`id`, `context_type`, `context_id`, `created_by`, `c
 CREATE TABLE `detail_soal` (
   `id` int(11) NOT NULL,
   `soal_id` int(11) NOT NULL,
+  `master_soal_id` int(11) DEFAULT NULL,
   `tipe_soal` enum('pilihan_ganda','pilihan_ganda_kompleks','benar_salah','essay') NOT NULL,
   `pertanyaan` text NOT NULL,
   `pilihan_a` text DEFAULT NULL,
+  `pilihan_a_path` varchar(255) DEFAULT NULL,
   `pilihan_b` text DEFAULT NULL,
+  `pilihan_b_path` varchar(255) DEFAULT NULL,
   `pilihan_c` text DEFAULT NULL,
+  `pilihan_c_path` varchar(255) DEFAULT NULL,
   `pilihan_d` text DEFAULT NULL,
+  `pilihan_d_path` varchar(255) DEFAULT NULL,
   `pilihan_e` text DEFAULT NULL,
+  `pilihan_e_path` varchar(255) DEFAULT NULL,
   `gambar_path` varchar(255) DEFAULT NULL,
   `gambar_posisi` enum('atas','bawah') DEFAULT NULL,
   `video_url` varchar(255) DEFAULT NULL,
@@ -550,118 +523,57 @@ CREATE TABLE `detail_soal` (
 -- Dumping data for table `detail_soal`
 --
 
-INSERT INTO `detail_soal` (`id`, `soal_id`, `tipe_soal`, `pertanyaan`, `pilihan_a`, `pilihan_b`, `pilihan_c`, `pilihan_d`, `pilihan_e`, `gambar_path`, `gambar_posisi`, `video_url`, `video_posisi`, `jawaban_benar`, `bobot`, `urutan`, `created_at`, `updated_at`) VALUES
-(19, 14, 'pilihan_ganda', 'Pagi siang sore', '1', '2', '3', '4', '6', '', '', NULL, NULL, 'A', 1, 1, '2025-12-05 16:03:54', '2025-12-05 16:03:54'),
-(20, 14, 'pilihan_ganda_kompleks', 'nama nama binatang', 'burung', 'kadal', 'buaya', 'mermet', 'apel', '', '', NULL, NULL, 'A,B,C', 1, 2, '2025-12-05 16:04:26', '2025-12-05 16:04:26'),
-(21, 14, 'benar_salah', 'matahari ada 1', '', '', '', '', '', '', '', NULL, NULL, 'benar', 1, 3, '2025-12-05 16:04:41', '2025-12-05 16:04:41'),
-(22, 5, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', NULL, NULL, NULL, NULL, 'E', 1, 1, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(23, 5, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 2, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(24, 5, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', NULL, NULL, 'benar', 1, 3, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(25, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 4, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(26, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 5, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(27, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 6, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(28, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 7, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(29, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 8, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(30, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 9, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(31, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 10, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(32, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 11, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(33, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 12, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(34, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 13, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(35, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 14, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(36, 5, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', NULL, NULL, NULL, NULL, 'E', 1, 15, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(37, 5, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 16, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(38, 5, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', NULL, NULL, 'benar', 1, 17, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(39, 5, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', NULL, NULL, NULL, NULL, 'E', 1, 18, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(40, 5, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 19, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(41, 5, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', NULL, NULL, 'benar', 1, 20, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(42, 5, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', NULL, NULL, 'benar', 1, 21, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(43, 5, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', NULL, NULL, 'benar', 1, 22, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(44, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 23, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(45, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 24, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(46, 5, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', NULL, NULL, NULL, NULL, 'A,D,E', 1, 25, '2025-12-06 00:30:18', '2025-12-06 00:30:18'),
-(47, 5, 'essay', 'berilah argument tentang video berikut', '', '', '', '', '', '', '', 'https://www.youtube.com/watch?v=Ry5M3uyikFM&list=RDRy5M3uyikFM&start_radio=1', 'atas', '', 1, 26, '2025-12-06 00:31:48', '2025-12-06 00:31:48'),
-(48, 5, 'essay', 'Perhatikan gambar di bawah ini, dan jelaskan menurut pendapat anda!', '', '', '', '', '', 'soal/soal-5-1765002789-6059d0.jpg', 'bawah', NULL, NULL, '', 1, 27, '2025-12-06 00:33:09', '2025-12-06 00:33:09'),
-(49, 18, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', '', '', '', '', 'E', 1, 1, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(50, 18, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', '', '', '', '', 'A,D,E', 1, 2, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(51, 18, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 3, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(52, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 4, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(53, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 5, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(54, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 6, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(55, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 7, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(56, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 8, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(57, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 9, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(58, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 10, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(59, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 11, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(60, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 12, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(61, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 13, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(62, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 14, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(63, 18, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', '', '', '', '', 'E', 1, 15, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(64, 18, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', '', '', '', '', 'A,D,E', 1, 16, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(65, 18, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 17, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(66, 18, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', '', '', '', '', 'E', 1, 18, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(67, 18, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', '', '', '', '', 'A,D,E', 1, 19, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(68, 18, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 20, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(69, 18, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 21, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(70, 18, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 22, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(71, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 23, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(72, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 24, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(73, 18, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 25, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(74, 18, 'essay', 'berilah argument tentang video berikut', '', '', '', '', '', NULL, NULL, 'https://www.youtube.com/watch?v=Ry5M3uyikFM&list=RDRy5M3uyikFM&start_radio=1', 'atas', '', 1, 26, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(75, 18, 'essay', 'Perhatikan gambar di bawah ini, dan jelaskan menurut pendapat anda!', '', '', '', '', '', 'soal/soal-5-1765002789-6059d0.jpg', 'bawah', '', '', '', 1, 27, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(76, 19, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', '', '', '', '', 'E', 1, 1, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(77, 19, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', '', '', '', '', 'A,D,E', 1, 2, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(78, 19, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 3, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(79, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 4, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(80, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 5, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(81, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 6, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(82, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 7, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(83, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 8, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(84, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 9, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(85, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 10, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(86, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 11, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(87, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 12, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(88, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 13, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(89, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 14, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(90, 19, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', '', '', '', '', 'E', 1, 15, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(91, 19, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', '', '', '', '', 'A,D,E', 1, 16, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(92, 19, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 17, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(93, 19, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', '', '', '', '', 'E', 1, 18, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(94, 19, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', '', '', '', '', 'A,D,E', 1, 19, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(95, 19, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 20, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(96, 19, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 21, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(97, 19, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 22, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(98, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 23, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(99, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 24, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(100, 19, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 25, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(101, 19, 'essay', 'berilah argument tentang video berikut', '', '', '', '', '', NULL, NULL, 'https://www.youtube.com/watch?v=Ry5M3uyikFM&list=RDRy5M3uyikFM&start_radio=1', 'atas', '', 1, 26, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(102, 19, 'essay', 'Perhatikan gambar di bawah ini, dan jelaskan menurut pendapat anda!', '', '', '', '', '', 'soal/soal-5-1765002789-6059d0.jpg', 'bawah', '', '', '', 1, 27, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(103, 20, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', '', '', '', '', 'E', 1, 1, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(104, 20, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', '', '', '', '', 'A,D,E', 1, 2, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(105, 20, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 3, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(106, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 4, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(107, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 5, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(108, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 6, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(109, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 7, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(110, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 8, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(111, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 9, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(112, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 10, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(113, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 11, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(114, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 12, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(115, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 13, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(116, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 14, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(117, 20, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', '', '', '', '', 'E', 1, 15, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(118, 20, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', '', '', '', '', 'A,D,E', 1, 16, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(119, 20, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 17, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(120, 20, 'pilihan_ganda', 'Jika...', 'sdf', 'sdfsdf', 'fsa', 'sadaq1', '2w', '', '', '', '', 'E', 1, 18, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(121, 20, 'pilihan_ganda_kompleks', 'Jika 2-1', '1', 'satu', 'one', '4', '5', '', '', '', '', 'A,D,E', 1, 19, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(122, 20, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 20, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(123, 20, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 21, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(124, 20, 'benar_salah', 'Gambar dii atas merupakan menteri', '', '', '', '', '', 'soal/soal-5-1764721583-4d145d.jpg', 'atas', '', '', 'benar', 1, 22, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(125, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 23, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(126, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 24, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(127, 20, 'pilihan_ganda', 'Komentari foto di atas dengan bijak!', '1', '2', '3', '4', '5', '', '', '', '', 'A,D,E', 1, 25, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(128, 20, 'essay', 'berilah argument tentang video berikut', '', '', '', '', '', NULL, NULL, 'https://www.youtube.com/watch?v=Ry5M3uyikFM&list=RDRy5M3uyikFM&start_radio=1', 'atas', '', 1, 26, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(129, 20, 'essay', 'Perhatikan gambar di bawah ini, dan jelaskan menurut pendapat anda!', '', '', '', '', '', 'soal/soal-5-1765002789-6059d0.jpg', 'bawah', '', '', '', 1, 27, '2025-12-06 00:43:00', '2025-12-06 00:43:00');
+INSERT INTO `detail_soal` (`id`, `soal_id`, `master_soal_id`, `tipe_soal`, `pertanyaan`, `pilihan_a`, `pilihan_a_path`, `pilihan_b`, `pilihan_b_path`, `pilihan_c`, `pilihan_c_path`, `pilihan_d`, `pilihan_d_path`, `pilihan_e`, `pilihan_e_path`, `gambar_path`, `gambar_posisi`, `video_url`, `video_posisi`, `jawaban_benar`, `bobot`, `urutan`, `created_at`, `updated_at`) VALUES
+(19, 14, NULL, 'pilihan_ganda', 'Pagi siang sore', '1', NULL, '2', NULL, '3', NULL, '4', NULL, '6', NULL, '', '', NULL, NULL, 'A', 1, 1, '2025-12-05 16:03:54', '2025-12-05 16:03:54'),
+(20, 14, NULL, 'pilihan_ganda_kompleks', 'nama nama binatang', 'burung', NULL, 'kadal', NULL, 'buaya', NULL, 'mermet', NULL, 'apel', NULL, '', '', NULL, NULL, 'A,B,C', 1, 2, '2025-12-05 16:04:26', '2025-12-05 16:04:26'),
+(21, 14, NULL, 'benar_salah', 'matahari ada 1', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, '', '', NULL, NULL, 'benar', 1, 3, '2025-12-05 16:04:41', '2025-12-05 16:04:41'),
+(135, 24, NULL, 'pilihan_ganda_kompleks', 'Testys', '1', NULL, '2', NULL, '3', NULL, '4', NULL, '5', NULL, '', '', NULL, NULL, 'A,B,C', 1, 1, '2025-12-08 01:15:40', '2025-12-08 05:19:12'),
+(136, 21, 0, 'pilihan_ganda_kompleks', 'Testys', '1', NULL, '2', NULL, '3', NULL, '4', NULL, '5', NULL, NULL, NULL, NULL, NULL, 'C,D,E', 1, 1, '2025-12-08 01:15:40', '2025-12-08 01:15:40'),
+(137, 22, 0, 'pilihan_ganda_kompleks', 'Testys', '1', NULL, '2', NULL, '3', NULL, '4', NULL, '5', NULL, NULL, NULL, NULL, NULL, 'C,D,E', 1, 1, '2025-12-08 01:15:40', '2025-12-08 01:15:40'),
+(138, 23, 0, 'pilihan_ganda_kompleks', 'Testys', '1', NULL, '2', NULL, '3', NULL, '4', NULL, '5', NULL, NULL, NULL, NULL, NULL, 'C,D,E', 1, 1, '2025-12-08 01:15:40', '2025-12-08 01:15:40'),
+(139, 36, NULL, 'pilihan_ganda', 'Show ip route adalah command yang digunakan untuk menampilkan seluruh informasi yang ada pada tabel routing. Jika hanya ingin menampilkan network yang connected saja Command yang benar adalah…', '#show run | section routing connected', NULL, '#show run | section connected', NULL, '#show run | routing connected', NULL, '#show run ip route', NULL, '#show ip route connected', NULL, '', '', NULL, NULL, 'A', 1, 1, '2025-12-08 01:57:51', '2025-12-08 01:57:51'),
+(140, 33, 0, 'pilihan_ganda', 'Show ip route adalah command yang digunakan untuk menampilkan seluruh informasi yang ada pada tabel routing. Jika hanya ingin menampilkan network yang connected saja Command yang benar adalah…', '#show run | section routing connected', NULL, '#show run | section connected', NULL, '#show run | routing connected', NULL, '#show run ip route', NULL, '#show ip route connected', NULL, NULL, NULL, NULL, NULL, 'A', 1, 1, '2025-12-08 01:57:51', '2025-12-08 01:57:51'),
+(141, 34, 0, 'pilihan_ganda', 'Show ip route adalah command yang digunakan untuk menampilkan seluruh informasi yang ada pada tabel routing. Jika hanya ingin menampilkan network yang connected saja Command yang benar adalah…', '#show run | section routing connected', NULL, '#show run | section connected', NULL, '#show run | routing connected', NULL, '#show run ip route', NULL, '#show ip route connected', NULL, NULL, NULL, NULL, NULL, 'A', 1, 1, '2025-12-08 01:57:51', '2025-12-08 01:57:51'),
+(142, 35, 0, 'pilihan_ganda', 'Show ip route adalah command yang digunakan untuk menampilkan seluruh informasi yang ada pada tabel routing. Jika hanya ingin menampilkan network yang connected saja Command yang benar adalah…', '#show run | section routing connected', NULL, '#show run | section connected', NULL, '#show run | routing connected', NULL, '#show run ip route', NULL, '#show ip route connected', NULL, NULL, NULL, NULL, NULL, 'A', 1, 1, '2025-12-08 01:57:51', '2025-12-08 01:57:51'),
+(143, 36, NULL, 'pilihan_ganda', 'Perhatikan command berikut!\r\n    #ip domain-name www.sas2025.id\r\n    #crypto key generate rsa [1024]\r\n\r\nCommand di atas merupakan bagian dari…', 'DNS ', NULL, 'Web ', NULL, 'Server ', NULL, 'SSH Telnet ', NULL, 'Tunnel', NULL, '', '', NULL, NULL, 'D', 1, 2, '2025-12-08 01:59:12', '2025-12-08 04:25:19'),
+(144, 33, 0, 'pilihan_ganda', 'Perhatikan command berikut!\r\n    #ip domain-name www.sas2025.id\r\n    #crypto key generate rsa [1024]\r\n\r\nCommand di atas merupakan bagian dari…', 'DNS ', NULL, 'Web ', NULL, 'Server ', NULL, 'SSH Telnet ', NULL, 'Tunnel', NULL, NULL, NULL, NULL, NULL, 'D', 1, 2, '2025-12-08 01:59:12', '2025-12-08 01:59:12'),
+(145, 34, 0, 'pilihan_ganda', 'Perhatikan command berikut!\r\n    #ip domain-name www.sas2025.id\r\n    #crypto key generate rsa [1024]\r\n\r\nCommand di atas merupakan bagian dari…', 'DNS ', NULL, 'Web ', NULL, 'Server ', NULL, 'SSH Telnet ', NULL, 'Tunnel', NULL, NULL, NULL, NULL, NULL, 'D', 1, 2, '2025-12-08 01:59:12', '2025-12-08 01:59:12'),
+(146, 35, 0, 'pilihan_ganda', 'Perhatikan command berikut!\r\n    #ip domain-name www.sas2025.id\r\n    #crypto key generate rsa [1024]\r\n\r\nCommand di atas merupakan bagian dari…', 'DNS ', NULL, 'Web ', NULL, 'Server ', NULL, 'SSH Telnet ', NULL, 'Tunnel', NULL, NULL, NULL, NULL, NULL, 'D', 1, 2, '2025-12-08 01:59:12', '2025-12-08 01:59:12'),
+(147, 36, NULL, 'pilihan_ganda_kompleks', 'Yang merupakan logical interface adalah… (pilihan lebih dari 1)', 'Interface GigabitEthernet', NULL, 'Interface loopback', NULL, 'Interface Ethernet', NULL, 'Interface VLAN', NULL, 'Interface point to point', NULL, '', '', NULL, NULL, 'B,D', 2, 3, '2025-12-08 02:00:56', '2025-12-08 02:22:03'),
+(148, 33, 0, 'pilihan_ganda_kompleks', 'Yang merupakan logical interface adalah… (pilihan lebih dari 1)', 'Interface GigabitEthernet', NULL, 'Interface loopback', NULL, 'Interface Ethernet', NULL, 'Interface VLAN', NULL, 'Interface point to point', NULL, NULL, NULL, NULL, NULL, 'B,C,D', 1, 3, '2025-12-08 02:00:56', '2025-12-08 02:00:56'),
+(149, 34, 0, 'pilihan_ganda_kompleks', 'Yang merupakan logical interface adalah… (pilihan lebih dari 1)', 'Interface GigabitEthernet', NULL, 'Interface loopback', NULL, 'Interface Ethernet', NULL, 'Interface VLAN', NULL, 'Interface point to point', NULL, NULL, NULL, NULL, NULL, 'B,C,D', 1, 3, '2025-12-08 02:00:56', '2025-12-08 02:00:56'),
+(150, 35, 0, 'pilihan_ganda_kompleks', 'Yang merupakan logical interface adalah… (pilihan lebih dari 1)', 'Interface GigabitEthernet', NULL, 'Interface loopback', NULL, 'Interface Ethernet', NULL, 'Interface VLAN', NULL, 'Interface point to point', NULL, NULL, NULL, NULL, NULL, 'B,C,D', 1, 3, '2025-12-08 02:00:56', '2025-12-08 02:00:56'),
+(151, 36, NULL, 'essay', 'Dari tayangan video tersebut, jelaskan dengan lengkap ', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, '', '', 'https://www.youtube.com/watch?v=DNG7QLyCiEc', 'atas', '', 10, 4, '2025-12-08 02:10:03', '2025-12-08 02:10:03'),
+(152, 33, 0, 'essay', 'Dari tayangan video tersebut, jelaskan dengan lengkap ', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, NULL, NULL, 'https://www.youtube.com/watch?v=DNG7QLyCiEc', 'atas', '', 10, 4, '2025-12-08 02:10:03', '2025-12-08 02:10:03'),
+(153, 34, 0, 'essay', 'Dari tayangan video tersebut, jelaskan dengan lengkap ', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, NULL, NULL, 'https://www.youtube.com/watch?v=DNG7QLyCiEc', 'atas', '', 10, 4, '2025-12-08 02:10:03', '2025-12-08 02:10:03'),
+(154, 35, 0, 'essay', 'Dari tayangan video tersebut, jelaskan dengan lengkap ', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, NULL, NULL, 'https://www.youtube.com/watch?v=DNG7QLyCiEc', 'atas', '', 10, 4, '2025-12-08 02:10:03', '2025-12-08 02:10:03'),
+(155, 36, NULL, 'benar_salah', 'IGRP merupakan static route', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, '', '', NULL, NULL, 'salah', 1, 5, '2025-12-08 18:29:15', '2025-12-08 18:29:15'),
+(156, 33, 0, 'benar_salah', 'IGRP merupakan static route', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, NULL, NULL, NULL, NULL, 'salah', 1, 5, '2025-12-08 18:29:15', '2025-12-08 18:29:15'),
+(157, 34, 0, 'benar_salah', 'IGRP merupakan static route', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, NULL, NULL, NULL, NULL, 'salah', 1, 5, '2025-12-08 18:29:15', '2025-12-08 18:29:15'),
+(158, 35, 0, 'benar_salah', 'IGRP merupakan static route', '', NULL, '', NULL, '', NULL, '', NULL, '', NULL, NULL, NULL, NULL, NULL, 'salah', 1, 5, '2025-12-08 18:29:15', '2025-12-08 18:29:15'),
+(159, 36, NULL, 'pilihan_ganda', 'tanda dari OSPF Inter area adalah', '', 'soal_options/soal-36-opt-a-1765240766-fb5597.jpg', '', 'soal_options/soal-36-opt-b-1765240766-937d5f.png', '', 'soal_options/soal-36-opt-c-1765240766-c141b3.png', '', 'soal_options/soal-36-opt-d-1765240766-973dc6.jpg', '', 'soal_options/soal-36-opt-e-1765240766-474146.png', '', '', NULL, NULL, 'E', 1, 6, '2025-12-08 18:39:26', '2025-12-08 18:39:26'),
+(160, 33, 0, 'pilihan_ganda', 'tanda dari OSPF Inter area adalah', '', 'soal_options/soal-36-opt-a-1765240766-fb5597.jpg', '', 'soal_options/soal-36-opt-b-1765240766-937d5f.png', '', 'soal_options/soal-36-opt-c-1765240766-c141b3.png', '', 'soal_options/soal-36-opt-d-1765240766-973dc6.jpg', '', 'soal_options/soal-36-opt-e-1765240766-474146.png', NULL, NULL, NULL, NULL, 'E', 1, 6, '2025-12-08 18:39:26', '2025-12-08 18:39:26'),
+(161, 34, 0, 'pilihan_ganda', 'tanda dari OSPF Inter area adalah', '', 'soal_options/soal-36-opt-a-1765240766-fb5597.jpg', '', 'soal_options/soal-36-opt-b-1765240766-937d5f.png', '', 'soal_options/soal-36-opt-c-1765240766-c141b3.png', '', 'soal_options/soal-36-opt-d-1765240766-973dc6.jpg', '', 'soal_options/soal-36-opt-e-1765240766-474146.png', NULL, NULL, NULL, NULL, 'E', 1, 6, '2025-12-08 18:39:26', '2025-12-08 18:39:26'),
+(162, 35, 0, 'pilihan_ganda', 'tanda dari OSPF Inter area adalah', '', 'soal_options/soal-36-opt-a-1765240766-fb5597.jpg', '', 'soal_options/soal-36-opt-b-1765240766-937d5f.png', '', 'soal_options/soal-36-opt-c-1765240766-c141b3.png', '', 'soal_options/soal-36-opt-d-1765240766-973dc6.jpg', '', 'soal_options/soal-36-opt-e-1765240766-474146.png', NULL, NULL, NULL, NULL, 'E', 1, 6, '2025-12-08 18:39:26', '2025-12-08 18:39:26'),
+(163, 36, NULL, 'pilihan_ganda', 'tanda dari OSPF Inter area adalah', '', 'soal_options/soal-36-opt-a-1765240775-d6582d.jpg', '', 'soal_options/soal-36-opt-b-1765240775-f74dd5.png', '', 'soal_options/soal-36-opt-c-1765240775-d5b9d4.png', '', 'soal_options/soal-36-opt-d-1765240775-29c22b.jpg', '', 'soal_options/soal-36-opt-e-1765240775-3fb3ca.png', '', '', NULL, NULL, 'E', 1, 6, '2025-12-08 18:39:35', '2025-12-08 18:39:35'),
+(164, 33, 0, 'pilihan_ganda', 'tanda dari OSPF Inter area adalah', '', 'soal_options/soal-36-opt-a-1765240775-d6582d.jpg', '', 'soal_options/soal-36-opt-b-1765240775-f74dd5.png', '', 'soal_options/soal-36-opt-c-1765240775-d5b9d4.png', '', 'soal_options/soal-36-opt-d-1765240775-29c22b.jpg', '', 'soal_options/soal-36-opt-e-1765240775-3fb3ca.png', NULL, NULL, NULL, NULL, 'E', 1, 6, '2025-12-08 18:39:35', '2025-12-08 18:39:35'),
+(165, 34, 0, 'pilihan_ganda', 'tanda dari OSPF Inter area adalah', '', 'soal_options/soal-36-opt-a-1765240775-d6582d.jpg', '', 'soal_options/soal-36-opt-b-1765240775-f74dd5.png', '', 'soal_options/soal-36-opt-c-1765240775-d5b9d4.png', '', 'soal_options/soal-36-opt-d-1765240775-29c22b.jpg', '', 'soal_options/soal-36-opt-e-1765240775-3fb3ca.png', NULL, NULL, NULL, NULL, 'E', 1, 6, '2025-12-08 18:39:35', '2025-12-08 18:39:35'),
+(166, 35, 0, 'pilihan_ganda', 'tanda dari OSPF Inter area adalah', '', 'soal_options/soal-36-opt-a-1765240775-d6582d.jpg', '', 'soal_options/soal-36-opt-b-1765240775-f74dd5.png', '', 'soal_options/soal-36-opt-c-1765240775-d5b9d4.png', '', 'soal_options/soal-36-opt-d-1765240775-29c22b.jpg', '', 'soal_options/soal-36-opt-e-1765240775-3fb3ca.png', NULL, NULL, NULL, NULL, 'E', 1, 6, '2025-12-08 18:39:35', '2025-12-08 18:39:35'),
+(167, 36, NULL, 'pilihan_ganda', 'tes opsi dengan gambar', '', 'soal_options/soal-36-opt-a-1765240830-2a8b90.png', '', 'soal_options/soal-36-opt-b-1765240830-b82960.png', '', 'soal_options/soal-36-opt-c-1765240830-c57a11.png', '', 'soal_options/soal-36-opt-d-1765240830-e4c410.jpg', '', 'soal_options/soal-36-opt-e-1765240830-8a0b93.jpg', '', '', NULL, NULL, 'D', 1, 8, '2025-12-08 18:40:30', '2025-12-08 18:40:30'),
+(168, 33, 0, 'pilihan_ganda', 'tes opsi dengan gambar', '', 'soal_options/soal-36-opt-a-1765240830-2a8b90.png', '', 'soal_options/soal-36-opt-b-1765240830-b82960.png', '', 'soal_options/soal-36-opt-c-1765240830-c57a11.png', '', 'soal_options/soal-36-opt-d-1765240830-e4c410.jpg', '', 'soal_options/soal-36-opt-e-1765240830-8a0b93.jpg', NULL, NULL, NULL, NULL, 'D', 1, 8, '2025-12-08 18:40:30', '2025-12-08 18:40:30'),
+(169, 34, 0, 'pilihan_ganda', 'tes opsi dengan gambar', '', 'soal_options/soal-36-opt-a-1765240830-2a8b90.png', '', 'soal_options/soal-36-opt-b-1765240830-b82960.png', '', 'soal_options/soal-36-opt-c-1765240830-c57a11.png', '', 'soal_options/soal-36-opt-d-1765240830-e4c410.jpg', '', 'soal_options/soal-36-opt-e-1765240830-8a0b93.jpg', NULL, NULL, NULL, NULL, 'D', 1, 8, '2025-12-08 18:40:30', '2025-12-08 18:40:30'),
+(170, 35, 0, 'pilihan_ganda', 'tes opsi dengan gambar', '', 'soal_options/soal-36-opt-a-1765240830-2a8b90.png', '', 'soal_options/soal-36-opt-b-1765240830-b82960.png', '', 'soal_options/soal-36-opt-c-1765240830-c57a11.png', '', 'soal_options/soal-36-opt-d-1765240830-e4c410.jpg', '', 'soal_options/soal-36-opt-e-1765240830-8a0b93.jpg', NULL, NULL, NULL, NULL, 'D', 1, 8, '2025-12-08 18:40:30', '2025-12-08 18:40:30'),
+(171, 36, NULL, 'pilihan_ganda', 'OSPF topology ditandai dengan gambar...', '', 'soal_options/soal-36-opt-a-1765240934-ecfe67.png', '', 'soal_options/soal-36-opt-b-1765240934-05dcf3.png', '', 'soal_options/soal-36-opt-c-1765240934-878617.png', '', 'soal_options/soal-36-opt-d-1765240934-12eee2.jpg', '', 'soal_options/soal-36-opt-e-1765240934-ce4235.jpg', '', '', NULL, NULL, 'B', 1, 9, '2025-12-08 18:42:14', '2025-12-08 18:42:14'),
+(172, 33, 0, 'pilihan_ganda', 'OSPF topology ditandai dengan gambar...', '', 'soal_options/soal-36-opt-a-1765240934-ecfe67.png', '', 'soal_options/soal-36-opt-b-1765240934-05dcf3.png', '', 'soal_options/soal-36-opt-c-1765240934-878617.png', '', 'soal_options/soal-36-opt-d-1765240934-12eee2.jpg', '', 'soal_options/soal-36-opt-e-1765240934-ce4235.jpg', NULL, NULL, NULL, NULL, 'B', 1, 9, '2025-12-08 18:42:14', '2025-12-08 18:42:14'),
+(173, 34, 0, 'pilihan_ganda', 'OSPF topology ditandai dengan gambar...', '', 'soal_options/soal-36-opt-a-1765240934-ecfe67.png', '', 'soal_options/soal-36-opt-b-1765240934-05dcf3.png', '', 'soal_options/soal-36-opt-c-1765240934-878617.png', '', 'soal_options/soal-36-opt-d-1765240934-12eee2.jpg', '', 'soal_options/soal-36-opt-e-1765240934-ce4235.jpg', NULL, NULL, NULL, NULL, 'B', 1, 9, '2025-12-08 18:42:14', '2025-12-08 18:42:14'),
+(174, 35, 0, 'pilihan_ganda', 'OSPF topology ditandai dengan gambar...', '', 'soal_options/soal-36-opt-a-1765240934-ecfe67.png', '', 'soal_options/soal-36-opt-b-1765240934-05dcf3.png', '', 'soal_options/soal-36-opt-c-1765240934-878617.png', '', 'soal_options/soal-36-opt-d-1765240934-12eee2.jpg', '', 'soal_options/soal-36-opt-e-1765240934-ce4235.jpg', NULL, NULL, NULL, NULL, 'B', 1, 9, '2025-12-08 18:42:14', '2025-12-08 18:42:14'),
+(175, 36, NULL, 'pilihan_ganda', 'produk huawei', '', 'soal_options/soal-36-opt-a-1765241035-80ec7a.png', '', 'soal_options/soal-36-opt-b-1765241035-650096.png', '', 'soal_options/soal-36-opt-c-1765241035-5b6998.png', '', 'soal_options/soal-36-opt-d-1765241035-78e983.jpg', '', 'soal_options/soal-36-opt-e-1765241035-c88981.jpg', '', '', NULL, NULL, 'E', 1, 10, '2025-12-08 18:43:55', '2025-12-08 18:43:55'),
+(176, 33, 0, 'pilihan_ganda', 'produk huawei', '', 'soal_options/soal-36-opt-a-1765241035-80ec7a.png', '', 'soal_options/soal-36-opt-b-1765241035-650096.png', '', 'soal_options/soal-36-opt-c-1765241035-5b6998.png', '', 'soal_options/soal-36-opt-d-1765241035-78e983.jpg', '', 'soal_options/soal-36-opt-e-1765241035-c88981.jpg', NULL, NULL, NULL, NULL, 'E', 1, 10, '2025-12-08 18:43:55', '2025-12-08 18:43:55'),
+(177, 34, 0, 'pilihan_ganda', 'produk huawei', '', 'soal_options/soal-36-opt-a-1765241035-80ec7a.png', '', 'soal_options/soal-36-opt-b-1765241035-650096.png', '', 'soal_options/soal-36-opt-c-1765241035-5b6998.png', '', 'soal_options/soal-36-opt-d-1765241035-78e983.jpg', '', 'soal_options/soal-36-opt-e-1765241035-c88981.jpg', NULL, NULL, NULL, NULL, 'E', 1, 10, '2025-12-08 18:43:55', '2025-12-08 18:43:55'),
+(178, 35, 0, 'pilihan_ganda', 'produk huawei', '', 'soal_options/soal-36-opt-a-1765241035-80ec7a.png', '', 'soal_options/soal-36-opt-b-1765241035-650096.png', '', 'soal_options/soal-36-opt-c-1765241035-5b6998.png', '', 'soal_options/soal-36-opt-d-1765241035-78e983.jpg', '', 'soal_options/soal-36-opt-e-1765241035-c88981.jpg', NULL, NULL, NULL, NULL, 'E', 1, 10, '2025-12-08 18:43:55', '2025-12-08 18:43:55'),
+(179, 33, NULL, 'pilihan_ganda', 'Pada sistem operasi linux berbasis CLI (Command Line Interface), penggunaan command apt install isc-dhcp-server digunakan untuk…', 'edit service dhcp server', '', 'edit network service dhcp server', '', 'install package dhcp server', '', 'uninstall package dhcp server', '', 'menambahkan network baru pada dhcp server', '', '', '', NULL, NULL, 'C', 1, 11, '2025-12-09 04:38:03', '2025-12-09 04:38:03'),
+(180, 34, 0, 'pilihan_ganda', 'Pada sistem operasi linux berbasis CLI (Command Line Interface), penggunaan command apt install isc-dhcp-server digunakan untuk…', 'edit service dhcp server', '', 'edit network service dhcp server', '', 'install package dhcp server', '', 'uninstall package dhcp server', '', 'menambahkan network baru pada dhcp server', '', NULL, NULL, NULL, NULL, 'C', 1, 11, '2025-12-09 04:38:03', '2025-12-09 04:38:03'),
+(181, 35, 0, 'pilihan_ganda', 'Pada sistem operasi linux berbasis CLI (Command Line Interface), penggunaan command apt install isc-dhcp-server digunakan untuk…', 'edit service dhcp server', '', 'edit network service dhcp server', '', 'install package dhcp server', '', 'uninstall package dhcp server', '', 'menambahkan network baru pada dhcp server', '', NULL, NULL, NULL, NULL, 'C', 1, 11, '2025-12-09 04:38:03', '2025-12-09 04:38:03');
 
 -- --------------------------------------------------------
 
@@ -807,7 +719,17 @@ CREATE TABLE `exam_attempts` (
 --
 
 INSERT INTO `exam_attempts` (`id`, `soal_id`, `siswa_id`, `allowed_attempts`, `used_attempts`, `created_at`, `updated_at`) VALUES
-(1, 5, 25, 1, 0, '2025-12-06 06:36:21', '2025-12-06 06:36:21');
+(2, 22, 323, 1, 2, '2025-12-06 09:36:22', '2025-12-06 09:36:32'),
+(6, 36, 25, 1, 0, '2025-12-06 11:36:58', '2025-12-06 11:36:58'),
+(7, 33, 25, 1, 0, '2025-12-06 12:14:56', '2025-12-06 12:14:56'),
+(8, 24, 23, 1, 0, '2025-12-08 08:09:12', '2025-12-08 08:09:12'),
+(9, 23, 23, 1, 0, '2025-12-08 08:09:42', '2025-12-08 08:09:42'),
+(10, 21, 23, 1, 0, '2025-12-08 08:10:53', '2025-12-08 08:10:53'),
+(11, 36, 427, 1, 7, '2025-12-08 09:13:34', '2025-12-08 09:14:42'),
+(19, 24, 427, 1, 4, '2025-12-08 09:48:25', '2025-12-08 09:48:45'),
+(24, 33, 347, 1, 2, '2025-12-09 13:52:36', '2025-12-09 13:55:32'),
+(27, 36, 404, 1, 1, '2025-12-09 13:56:01', '2025-12-09 13:57:35'),
+(29, 35, 389, 1, 2, '2025-12-09 14:43:42', '2025-12-09 14:44:25');
 
 -- --------------------------------------------------------
 
@@ -827,8 +749,33 @@ CREATE TABLE `jawaban_siswa` (
   `waktu_mulai` datetime DEFAULT NULL,
   `waktu_selesai` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `flagged` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `jawaban_siswa`
+--
+
+INSERT INTO `jawaban_siswa` (`id`, `soal_id`, `detail_soal_id`, `siswa_id`, `jawaban`, `is_correct`, `nilai_essay`, `feedback_guru`, `waktu_mulai`, `waktu_selesai`, `created_at`, `updated_at`, `flagged`) VALUES
+(5, 36, 151, 427, '', NULL, NULL, NULL, '2025-12-08 09:13:54', '2025-12-08 09:14:38', '2025-12-08 02:13:54', '2025-12-08 02:14:42', 0),
+(6, 36, 139, 427, '', 0, NULL, NULL, '2025-12-08 09:13:54', '2025-12-08 09:14:38', '2025-12-08 02:13:54', '2025-12-08 02:14:42', 0),
+(7, 36, 147, 427, '', 0, NULL, NULL, '2025-12-08 09:13:54', '2025-12-08 09:14:38', '2025-12-08 02:13:54', '2025-12-08 02:14:42', 0),
+(8, 36, 143, 427, '', 0, NULL, NULL, '2025-12-08 09:13:54', '2025-12-08 09:14:38', '2025-12-08 02:13:54', '2025-12-08 02:14:42', 0),
+(9, 24, 135, 427, 'B,D,E', 0, NULL, NULL, '2025-12-08 09:48:45', '2025-12-08 09:48:45', '2025-12-08 02:48:45', '2025-12-08 08:48:45', 0),
+(10, 33, 152, 347, '', NULL, NULL, NULL, '2025-12-09 13:52:56', '2025-12-09 13:54:42', '2025-12-09 06:52:56', '2025-12-09 06:55:32', 0),
+(11, 33, 156, 347, 'salah', 1, NULL, NULL, '2025-12-09 13:53:16', '2025-12-09 13:54:42', '2025-12-09 06:53:16', '2025-12-09 06:55:32', 0),
+(12, 36, 147, 404, 'B,D', 1, NULL, NULL, '2025-12-09 13:56:22', '2025-12-09 13:57:35', '2025-12-09 06:56:22', '2025-12-09 12:57:35', 0),
+(13, 36, 151, 404, 'Penjelasan tetang static route', NULL, NULL, NULL, '2025-12-09 13:56:22', '2025-12-09 13:57:35', '2025-12-09 06:56:22', '2025-12-09 12:57:35', 0),
+(14, 36, 139, 404, 'A', 1, NULL, NULL, '2025-12-09 13:56:42', '2025-12-09 13:57:35', '2025-12-09 06:56:42', '2025-12-09 12:57:35', 0),
+(15, 36, 171, 404, 'A', 0, NULL, NULL, '2025-12-09 13:56:42', '2025-12-09 13:57:35', '2025-12-09 06:56:42', '2025-12-09 12:57:35', 0),
+(16, 36, 175, 404, 'B', 0, NULL, NULL, '2025-12-09 13:56:42', '2025-12-09 13:57:35', '2025-12-09 06:56:42', '2025-12-09 12:57:35', 0),
+(17, 36, 167, 404, 'D', 1, NULL, NULL, '2025-12-09 13:56:42', '2025-12-09 13:57:35', '2025-12-09 06:56:42', '2025-12-09 12:57:35', 0),
+(18, 36, 155, 404, 'salah', 1, NULL, NULL, '2025-12-09 13:57:02', '2025-12-09 13:57:35', '2025-12-09 06:57:02', '2025-12-09 12:57:35', 0),
+(19, 36, 159, 404, 'B', 0, NULL, NULL, '2025-12-09 13:57:02', '2025-12-09 13:57:35', '2025-12-09 06:57:02', '2025-12-09 12:57:35', 0),
+(20, 36, 143, 404, 'D', 1, NULL, NULL, '2025-12-09 13:57:02', '2025-12-09 13:57:35', '2025-12-09 06:57:02', '2025-12-09 12:57:35', 0),
+(21, 36, 163, 404, 'D', 0, NULL, NULL, '2025-12-09 13:57:02', '2025-12-09 13:57:35', '2025-12-09 06:57:02', '2025-12-09 12:57:35', 0),
+(22, 35, 154, 389, '', NULL, NULL, NULL, '2025-12-09 14:44:02', '2025-12-09 14:44:19', '2025-12-09 07:44:02', '2025-12-09 07:44:25', 0);
 
 -- --------------------------------------------------------
 
@@ -852,7 +799,7 @@ CREATE TABLE `jurusan` (
 
 INSERT INTO `jurusan` (`id`, `kode_jurusan`, `nama_jurusan`, `singkatan`, `deskripsi`, `created_at`, `updated_at`) VALUES
 (1, 'KK03', 'Teknik Komputer dan Jaringan', 'TKJ', 'Jurusan yang mempelajari tentang jaringan komputer, server, dan infrastruktur IT', '2025-11-25 09:36:52', '2025-12-01 08:56:07'),
-(5, 'KK04', 'Manajemen Logistik', 'MAL', 'Ekpedisi', '2025-11-27 08:15:41', '2025-11-27 08:15:41'),
+(5, 'KK04', 'Manajemen Logistik', 'MANLOG', 'Ekpedisi', '2025-11-27 08:15:41', '2025-12-07 10:31:05'),
 (6, 'KK01', 'Manajemen Perkantoran', 'MP', 'Mempelajari semua hal tentang Perkantoran', '2025-12-01 08:56:33', '2025-12-01 08:56:33'),
 (7, 'KK02', 'Akuntansi', 'AK', 'Mempelajari Keuangan', '2025-12-01 08:56:48', '2025-12-01 08:56:48');
 
@@ -927,96 +874,78 @@ CREATE TABLE `log_ujian` (
 --
 
 INSERT INTO `log_ujian` (`id`, `soal_id`, `siswa_id`, `aktivitas`, `keterangan`, `created_at`) VALUES
-(11, 5, 25, 'mulai_ujian', NULL, '2025-12-02 18:21:58'),
-(12, 5, 314, 'mulai_ujian', NULL, '2025-12-02 18:29:19'),
-(13, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:30:14'),
-(14, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:30:14'),
-(15, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:30:14'),
-(16, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:30:14'),
-(17, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:30:14'),
-(18, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:30:23'),
-(19, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:30:31'),
-(20, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:30:36'),
-(21, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:30:36'),
-(22, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:30:47'),
-(23, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:30:47'),
-(24, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:30:48'),
-(25, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:30:48'),
-(26, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:30:48'),
-(27, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:30:48'),
-(28, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:30:48'),
-(29, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:30:49'),
-(30, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:30:49'),
-(31, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:30:49'),
-(32, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:30:51'),
-(33, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:30:51'),
-(34, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:30:51'),
-(35, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:30:51'),
-(36, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:30:51'),
-(37, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:30:51'),
-(38, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:31:48'),
-(39, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:32:00'),
-(40, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:32:03'),
-(41, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:32:03'),
-(42, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:32:12'),
-(43, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:32:12'),
-(44, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: exit_fullscreen', '2025-12-02 18:32:12'),
-(45, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:32:14'),
-(46, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:32:14'),
-(47, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:32:14'),
-(48, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:32:15'),
-(49, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:32:15'),
-(50, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:32:15'),
-(51, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:32:15'),
-(52, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:32:15'),
-(53, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:32:15'),
-(54, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:32:16'),
-(55, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:32:16'),
-(56, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:32:16'),
-(57, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:32:17'),
-(58, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:32:17'),
-(59, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:32:17'),
-(60, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:32:17'),
-(61, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:32:17'),
-(62, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:32:17'),
-(63, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:37:47'),
-(64, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:37:51'),
-(65, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:37:52'),
-(66, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:37:52'),
-(67, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:37:55'),
-(68, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:37:55'),
-(69, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:37:55'),
-(70, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:37:56'),
-(71, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:37:56'),
-(72, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:37:56'),
-(73, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:37:56'),
-(74, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:37:56'),
-(75, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:37:56'),
-(76, 5, 314, 'mulai_ujian', NULL, '2025-12-02 18:53:40'),
-(77, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:53:53'),
-(78, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:53:53'),
-(79, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:54:19'),
-(80, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:54:19'),
-(81, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:54:19'),
-(82, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:54:22'),
-(83, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:54:22'),
-(84, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-02 18:54:22'),
-(85, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:54:22'),
-(86, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: exit_fullscreen', '2025-12-02 18:54:22'),
-(87, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:54:22'),
-(88, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:54:22'),
-(89, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:54:22'),
-(90, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:57:32'),
-(91, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:57:32'),
-(92, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:57:32'),
-(93, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:57:32'),
-(94, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:57:32'),
-(95, 5, 314, 'selesai_ujian', 'submit', '2025-12-02 18:59:56'),
-(96, 5, 314, 'pindah_tab', 'window_blur', '2025-12-02 18:59:56'),
-(97, 5, 314, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-02 18:59:56'),
-(98, 5, 314, 'pindah_tab', 'tab_hidden', '2025-12-02 18:59:56'),
-(99, 5, 314, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-02 18:59:56'),
-(100, 5, 25, 'mulai_ujian', NULL, '2025-12-05 23:36:21');
+(101, 22, 323, 'mulai_ujian', NULL, '2025-12-06 17:36:22'),
+(102, 22, 323, 'pindah_tab', 'window_blur', '2025-12-06 17:36:31'),
+(103, 22, 323, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-06 17:36:31'),
+(104, 22, 323, 'selesai_ujian', 'submit', '2025-12-06 17:36:31'),
+(105, 22, 323, 'pindah_tab', 'tab_hidden', '2025-12-06 17:36:32'),
+(106, 22, 323, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-06 17:36:32'),
+(109, 36, 25, 'mulai_ujian', NULL, '2025-12-06 04:36:58'),
+(110, 33, 25, 'mulai_ujian', NULL, '2025-12-06 05:14:56'),
+(111, 24, 23, 'mulai_ujian', NULL, '2025-12-08 01:09:12'),
+(112, 23, 23, 'mulai_ujian', NULL, '2025-12-08 01:09:42'),
+(113, 21, 23, 'mulai_ujian', NULL, '2025-12-08 01:10:53'),
+(114, 36, 25, 'mulai_ujian', NULL, '2025-12-08 02:01:00'),
+(115, 36, 25, 'mulai_ujian', NULL, '2025-12-08 02:02:02'),
+(116, 36, 427, 'mulai_ujian', NULL, '2025-12-08 02:13:34'),
+(117, 36, 427, 'pindah_tab', 'tab_hidden', '2025-12-08 02:14:22'),
+(118, 36, 427, 'pindah_tab', 'window_blur', '2025-12-08 02:14:22'),
+(119, 36, 427, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-08 02:14:38'),
+(120, 36, 427, 'auto_submit', 'Terlalu banyak pelanggaran: exit_fullscreen', '2025-12-08 02:14:38'),
+(121, 36, 427, 'pindah_tab', 'window_blur', '2025-12-08 02:14:39'),
+(122, 36, 427, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-08 02:14:39'),
+(123, 36, 427, 'pindah_tab', 'window_blur', '2025-12-08 02:14:40'),
+(124, 36, 427, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-08 02:14:40'),
+(125, 36, 427, 'pindah_tab', 'window_blur', '2025-12-08 02:14:41'),
+(126, 36, 427, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-08 02:14:41'),
+(127, 36, 427, 'pindah_tab', 'window_blur', '2025-12-08 02:14:42'),
+(128, 36, 427, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-08 02:14:42'),
+(129, 36, 427, 'selesai_ujian', 'submit', '2025-12-08 02:14:42'),
+(130, 36, 427, 'pindah_tab', 'tab_hidden', '2025-12-08 02:14:42'),
+(131, 36, 427, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-08 02:14:42'),
+(132, 36, 25, 'mulai_ujian', NULL, '2025-12-08 02:20:29'),
+(133, 36, 25, 'mulai_ujian', NULL, '2025-12-08 02:22:57'),
+(134, 24, 427, 'mulai_ujian', NULL, '2025-12-08 02:48:25'),
+(135, 24, 427, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-08 02:48:33'),
+(136, 24, 427, 'pindah_tab', 'window_blur', '2025-12-08 02:48:43'),
+(137, 24, 427, 'auto_submit', 'Terlalu banyak pelanggaran: exit_fullscreen', '2025-12-08 02:48:43'),
+(138, 24, 427, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-08 02:48:43'),
+(139, 24, 427, 'pindah_tab', 'window_blur', '2025-12-08 02:48:45'),
+(140, 24, 427, 'auto_submit', 'Terlalu banyak pelanggaran: window_blur', '2025-12-08 02:48:45'),
+(141, 24, 427, 'selesai_ujian', 'submit', '2025-12-08 02:48:45'),
+(142, 24, 427, 'pindah_tab', 'tab_hidden', '2025-12-08 02:48:45'),
+(143, 24, 427, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-08 02:48:45'),
+(144, 36, 25, 'mulai_ujian', NULL, '2025-12-08 02:50:27'),
+(145, 36, 25, 'mulai_ujian', NULL, '2025-12-08 03:08:13'),
+(146, 36, 25, 'mulai_ujian', NULL, '2025-12-08 03:12:51'),
+(147, 36, 25, 'mulai_ujian', NULL, '2025-12-08 03:59:35'),
+(148, 36, 25, 'mulai_ujian', NULL, '2025-12-08 04:00:11'),
+(149, 36, 25, 'mulai_ujian', NULL, '2025-12-08 04:25:10'),
+(150, 24, 23, 'mulai_ujian', NULL, '2025-12-08 04:28:08'),
+(151, 24, 23, 'mulai_ujian', NULL, '2025-12-08 04:49:44'),
+(152, 23, 23, 'mulai_ujian', NULL, '2025-12-08 04:55:55'),
+(153, 36, 25, 'mulai_ujian', NULL, '2025-12-08 05:07:22'),
+(154, 24, 23, 'mulai_ujian', NULL, '2025-12-08 05:17:50'),
+(155, 36, 25, 'mulai_ujian', NULL, '2025-12-08 18:35:44'),
+(156, 33, 25, 'mulai_ujian', NULL, '2025-12-08 20:54:04'),
+(157, 33, 25, 'mulai_ujian', NULL, '2025-12-09 06:50:58'),
+(158, 33, 347, 'mulai_ujian', NULL, '2025-12-09 06:52:36'),
+(159, 33, 347, 'pindah_tab', 'tab_hidden', '2025-12-09 06:52:41'),
+(160, 33, 347, 'pindah_tab', 'tab_hidden', '2025-12-09 06:53:35'),
+(161, 33, 347, 'pindah_tab', 'tab_hidden', '2025-12-09 06:54:42'),
+(162, 33, 347, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-09 06:54:42'),
+(163, 33, 347, 'selesai_ujian', 'submit', '2025-12-09 06:55:32'),
+(164, 36, 404, 'mulai_ujian', NULL, '2025-12-09 06:56:01'),
+(165, 36, 404, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-09 06:56:15'),
+(166, 36, 404, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-09 06:57:35'),
+(167, 36, 404, 'selesai_ujian', 'submit', '2025-12-09 06:57:35'),
+(168, 36, 404, 'pindah_tab', 'tab_hidden', '2025-12-09 06:57:35'),
+(169, 35, 389, 'mulai_ujian', NULL, '2025-12-09 07:43:42'),
+(170, 35, 389, 'keluar_fullscreen', 'exit_fullscreen', '2025-12-09 07:44:13'),
+(171, 35, 389, 'pindah_tab', 'window_blur', '2025-12-09 07:44:18'),
+(172, 35, 389, 'pindah_tab', 'tab_hidden', '2025-12-09 07:44:19'),
+(173, 35, 389, 'auto_submit', 'Terlalu banyak pelanggaran: tab_hidden', '2025-12-09 07:44:19'),
+(174, 35, 389, 'selesai_ujian', 'submit', '2025-12-09 07:44:25');
 
 -- --------------------------------------------------------
 
@@ -1110,26 +1039,6 @@ CREATE TABLE `materi_kelas` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `meetings`
---
-
-CREATE TABLE `meetings` (
-  `id` int(11) NOT NULL,
-  `context_type` enum('assignment','tugas') NOT NULL,
-  `context_id` int(11) NOT NULL,
-  `provider` enum('zoom','teams','jitsi','webex') NOT NULL,
-  `join_url` varchar(255) NOT NULL,
-  `meeting_title` varchar(200) DEFAULT NULL,
-  `scheduled_at` datetime DEFAULT NULL,
-  `passcode` varchar(50) DEFAULT NULL,
-  `created_by` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `nilai`
 --
 
@@ -1151,7 +1060,13 @@ CREATE TABLE `nilai` (
 --
 
 INSERT INTO `nilai` (`id`, `siswa_id`, `mapel_id`, `kelas_id`, `tahun_ajaran_id`, `semester`, `jenis_penilaian`, `nilai`, `created_at`, `updated_at`) VALUES
-(2, 314, 86, 33, 9, 'Ganjil', 'Harian', 80.00, '2025-12-02 18:30:14', '2025-12-03 23:45:07');
+(2, 314, 86, 33, 9, 'Ganjil', 'Harian', 80.00, '2025-12-02 18:30:14', '2025-12-03 23:45:07'),
+(3, 323, 85, 33, 9, 'Ganjil', 'UAS', 0.00, '2025-12-06 17:36:31', '2025-12-06 17:36:32'),
+(4, 427, 86, 35, 9, 'Ganjil', 'UAS', 0.00, '2025-12-08 02:14:38', '2025-12-08 02:14:42'),
+(5, 427, 85, 35, 9, 'Ganjil', 'UAS', 66.67, '2025-12-08 02:48:43', '2025-12-08 02:48:45'),
+(6, 347, 86, 30, 9, 'Ganjil', 'UAS', 5.00, '2025-12-09 06:54:42', '2025-12-09 06:55:32'),
+(7, 404, 86, 35, 9, 'Ganjil', 'UAS', 30.00, '2025-12-09 06:57:35', '2025-12-09 06:57:35'),
+(8, 389, 86, 34, 9, 'Ganjil', 'UAS', 0.00, '2025-12-09 07:44:19', '2025-12-09 07:44:25');
 
 -- --------------------------------------------------------
 
@@ -1212,22 +1127,36 @@ CREATE TABLE `soal` (
   `durasi` int(11) NOT NULL COMMENT 'Durasi dalam menit',
   `tampil_nilai` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Apakah siswa bisa lihat nilai',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `bank_soal_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `soal`
 --
 
-INSERT INTO `soal` (`id`, `assignment_id`, `judul_ujian`, `deskripsi`, `jenis_ujian`, `semester`, `waktu_mulai`, `waktu_selesai`, `durasi`, `tampil_nilai`, `created_at`, `updated_at`) VALUES
-(5, 195, 'Ulangan harian 1', 'Testing', 'UTS', 'Ganjil', '2025-12-03 07:25:00', '2025-12-03 08:25:00', 60, 0, '2025-12-02 18:19:36', '2025-12-06 00:32:00'),
-(14, 346, 'UTS Dasar-dasar TKJ TA 2025/2026', 'Kerjakan dengan teliti', 'UTS', 'Ganjil', '2025-12-05 14:03:00', '2025-12-06 14:03:00', 90, 0, '2025-12-05 16:03:25', '2025-12-05 16:03:25'),
-(15, 347, 'UTS Dasar-dasar TKJ TA 2025/2026', 'Kerjakan dengan teliti', 'UTS', 'Ganjil', '2025-12-05 14:03:00', '2025-12-06 14:03:00', 90, 0, '2025-12-05 16:03:25', '2025-12-05 16:03:25'),
-(16, 348, 'UTS Dasar-dasar TKJ TA 2025/2026', 'Kerjakan dengan teliti', 'UTS', 'Ganjil', '2025-12-05 14:03:00', '2025-12-06 14:03:00', 90, 0, '2025-12-05 16:03:25', '2025-12-05 16:03:25'),
-(17, 349, 'UTS Dasar-dasar TKJ TA 2025/2026', 'Kerjakan dengan teliti', 'UTS', 'Ganjil', '2025-12-05 14:03:00', '2025-12-06 14:03:00', 90, 0, '2025-12-05 16:03:25', '2025-12-05 16:03:25'),
-(18, 196, 'Ulangan harian 1', 'Testing', 'UTS', 'Ganjil', '2025-12-03 07:25:00', '2025-12-03 08:25:00', 60, 0, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(19, 197, 'Ulangan harian 1', 'Testing', 'UTS', 'Ganjil', '2025-12-03 07:25:00', '2025-12-03 08:25:00', 60, 0, '2025-12-06 00:43:00', '2025-12-06 00:43:00'),
-(20, 198, 'Ulangan harian 1', 'Testing', 'UTS', 'Ganjil', '2025-12-03 07:25:00', '2025-12-03 08:25:00', 60, 0, '2025-12-06 00:43:00', '2025-12-06 00:43:00');
+INSERT INTO `soal` (`id`, `assignment_id`, `judul_ujian`, `deskripsi`, `jenis_ujian`, `semester`, `waktu_mulai`, `waktu_selesai`, `durasi`, `tampil_nilai`, `created_at`, `updated_at`, `bank_soal_id`) VALUES
+(14, 346, 'UTS Dasar-dasar TKJ TA 2025/2026', 'Kerjakan dengan teliti', 'UTS', 'Ganjil', '2025-12-05 14:03:00', '2025-12-06 14:03:00', 90, 0, '2025-12-05 16:03:25', '2025-12-05 16:03:25', NULL),
+(15, 347, 'UTS Dasar-dasar TKJ TA 2025/2026', 'Kerjakan dengan teliti', 'UTS', 'Ganjil', '2025-12-05 14:03:00', '2025-12-06 14:03:00', 90, 0, '2025-12-05 16:03:25', '2025-12-05 16:03:25', NULL),
+(16, 348, 'UTS Dasar-dasar TKJ TA 2025/2026', 'Kerjakan dengan teliti', 'UTS', 'Ganjil', '2025-12-05 14:03:00', '2025-12-06 14:03:00', 90, 0, '2025-12-05 16:03:25', '2025-12-05 16:03:25', NULL),
+(17, 349, 'UTS Dasar-dasar TKJ TA 2025/2026', 'Kerjakan dengan teliti', 'UTS', 'Ganjil', '2025-12-05 14:03:00', '2025-12-06 14:03:00', 90, 0, '2025-12-05 16:03:25', '2025-12-05 16:03:25', NULL),
+(21, 180, 'Tes UAS', 'Tes', 'UAS', 'Ganjil', '2025-12-05 23:53:00', '2025-12-08 23:53:00', 90, 0, '2025-12-06 16:54:05', '2025-12-06 16:54:05', NULL),
+(22, 179, 'Tes UAS', 'Tes', 'UAS', 'Ganjil', '2025-12-05 23:53:00', '2025-12-08 23:53:00', 90, 0, '2025-12-06 16:54:05', '2025-12-06 16:54:05', NULL),
+(23, 181, 'Tes UAS', 'Tes', 'UAS', 'Ganjil', '2025-12-05 23:53:00', '2025-12-08 23:53:00', 90, 0, '2025-12-06 16:54:05', '2025-12-06 16:54:05', NULL),
+(24, 182, 'Tes UAS', 'Tes', 'UAS', 'Ganjil', '2025-12-05 23:53:00', '2025-12-08 23:53:00', 90, 0, '2025-12-06 16:54:05', '2025-12-06 16:54:05', NULL),
+(33, 196, 'UAS GANJIL NCS', 'TEST', 'UAS', 'Ganjil', '2025-12-06 17:36:00', '2025-12-13 17:36:00', 90, 0, '2025-12-06 04:36:25', '2025-12-06 04:36:25', NULL),
+(34, 195, 'UAS GANJIL NCS', 'TEST', 'UAS', 'Ganjil', '2025-12-06 17:36:00', '2025-12-13 17:36:00', 90, 0, '2025-12-06 04:36:25', '2025-12-06 04:36:25', NULL),
+(35, 197, 'UAS GANJIL NCS', 'TEST', 'UAS', 'Ganjil', '2025-12-06 17:36:00', '2025-12-13 17:36:00', 90, 0, '2025-12-06 04:36:25', '2025-12-06 04:36:25', NULL),
+(36, 198, 'UAS GANJIL NCS', 'TEST', 'UAS', 'Ganjil', '2025-12-06 17:36:00', '2025-12-13 17:36:00', 90, 0, '2025-12-06 04:36:25', '2025-12-06 04:36:25', NULL),
+(37, 298, 'Ujian hidup', '', 'UAS', 'Ganjil', '2025-12-08 14:00:00', '2028-12-08 14:00:00', 90, 0, '2025-12-08 01:00:52', '2025-12-08 01:00:52', NULL),
+(38, 299, 'Ujian hidup', '', 'UAS', 'Ganjil', '2025-12-08 14:00:00', '2028-12-08 14:00:00', 90, 0, '2025-12-08 01:00:52', '2025-12-08 01:00:52', NULL),
+(39, 300, 'Ujian hidup', '', 'UAS', 'Ganjil', '2025-12-08 14:00:00', '2028-12-08 14:00:00', 90, 0, '2025-12-08 01:00:52', '2025-12-08 01:00:52', NULL),
+(40, 301, 'Ujian hidup', '', 'UAS', 'Ganjil', '2025-12-08 14:00:00', '2028-12-08 14:00:00', 90, 0, '2025-12-08 01:00:52', '2025-12-08 01:00:52', NULL),
+(41, 302, 'Ujian hidup', '', 'UAS', 'Ganjil', '2025-12-08 14:00:00', '2028-12-08 14:00:00', 90, 0, '2025-12-08 01:00:52', '2025-12-08 01:00:52', NULL),
+(42, 304, 'Ujian hidup', '', 'UAS', 'Ganjil', '2025-12-08 14:00:00', '2028-12-08 14:00:00', 90, 0, '2025-12-08 01:00:52', '2025-12-08 01:00:52', NULL),
+(43, 305, 'Ujian hidup', '', 'UAS', 'Ganjil', '2025-12-08 14:00:00', '2028-12-08 14:00:00', 90, 0, '2025-12-08 01:00:52', '2025-12-08 01:00:52', NULL),
+(44, 306, 'Ujian hidup', '', 'UAS', 'Ganjil', '2025-12-08 14:00:00', '2028-12-08 14:00:00', 90, 0, '2025-12-08 01:00:52', '2025-12-08 01:00:52', NULL),
+(45, 307, 'Ujian hidup', '', 'UAS', 'Ganjil', '2025-12-08 14:00:00', '2028-12-08 14:00:00', 90, 0, '2025-12-08 01:00:52', '2025-12-08 01:00:52', NULL);
 
 -- --------------------------------------------------------
 
@@ -1380,7 +1309,7 @@ INSERT INTO `users` (`id`, `username`, `password`, `nama_lengkap`, `email`, `no_
 (22, 'KGB2G061', '$2y$10$rym/Yo1VFrmFXkLsZlFG/Oi3fnQVuVVukwlJJIl/np27pK6NYWwJi', 'Nira Windy Andini, S.Pd', 'email61@gmail.com', '8131122334', 'guru', 'KGB2G061', NULL, NULL, NULL, NULL, 1, '2025-12-01 10:20:12', '2025-12-01 10:20:12'),
 (23, 'KGB2G068', '$2y$10$gns/orpYjxc9l5HKuhfyNOtaHtOyiajXRqw56Xn3i8kpkPGy1PjGy', 'Budi Purwanto, S.Kom., MTA.', 'email68@gmail.com', '8131122334', 'guru', 'KGB2G068', NULL, NULL, NULL, NULL, 1, '2025-12-01 10:20:13', '2025-12-02 17:17:00'),
 (24, 'KGB2G070', '$2y$10$OSNP0L91uC.T0PEiu1fMsu.IGIJFKfzrf6W2Rzy9BUjBpvwhIqBt2', 'Madya Ainul Mardiyah, S.Pd.', 'email70@gmail.com', '8131122334', 'guru', 'KGB2G070', NULL, NULL, NULL, NULL, 1, '2025-12-01 10:20:13', '2025-12-01 10:20:13'),
-(25, 'KGB2G071', '$2y$10$HofhSMktcLOEbmKr65T/EesfF2UcwzbBqJAVuzgzqH2ikFBtxEB6.', 'Muhammad Zaky Nur Fuadi, M.Kom', 'email71@gmail.com', '8131122334', 'guru', 'KGB2G071', NULL, NULL, NULL, 'assets/uploads/foto_profil/user-KGB2G071-1764722853.jpg', 1, '2025-12-01 10:20:13', '2025-12-03 00:47:33'),
+(25, 'KGB2G071', '$2y$10$HofhSMktcLOEbmKr65T/EesfF2UcwzbBqJAVuzgzqH2ikFBtxEB6.', 'Muhammad Zaky Nur Fuadi, M.Kom', 'email71@gmail.com', '8131122334', 'guru', 'KGB2G071', NULL, NULL, NULL, 'assets/uploads/foto_profil/user-KGB2G071-1765017323.jpg', 1, '2025-12-01 10:20:13', '2025-12-06 10:35:23'),
 (26, 'KGB2G073', '$2y$10$IXXTiCS6OV3NZQdJFTBDze/eQGPvRql.i7XI3HVsUjm88raPAkq3W', 'Reno Anggara, M.Pd', 'email73@gmail.com', '8131122334', 'guru', 'KGB2G073', NULL, NULL, NULL, NULL, 1, '2025-12-01 10:20:13', '2025-12-01 10:20:13'),
 (27, 'KGB2G075', '$2y$10$eButOw4wzkl5TZBcvNAT9OrYf1a3CW6rXk1HLfKJiE86NC0tiPfIW', 'Purnamawan, S.Ag', 'email75@gmail.com', '8131122334', 'guru', 'KGB2G075', NULL, NULL, NULL, NULL, 1, '2025-12-01 10:20:13', '2025-12-01 10:20:13'),
 (28, 'KGB2G076', '$2y$10$sYNO6jywc.bmcvFcIyL0fuzHYXrqYavGnLK1jyHlFll0uFk0NbVhO', 'Dita Nur Anggraini, S.Pd.', 'email76@gmail.com', '8131122334', 'guru', 'KGB2G076', NULL, NULL, NULL, NULL, 1, '2025-12-01 10:20:13', '2025-12-01 10:20:13'),
@@ -2299,25 +2228,12 @@ ALTER TABLE `bank_soal`
   ADD KEY `mi` (`mapel_id`);
 
 --
--- Indexes for table `chat_messages`
---
-ALTER TABLE `chat_messages`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `thread_idx` (`thread_id`);
-
---
--- Indexes for table `chat_threads`
---
-ALTER TABLE `chat_threads`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `ctx` (`context_type`,`context_id`);
-
---
 -- Indexes for table `detail_soal`
 --
 ALTER TABLE `detail_soal`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `soal_id` (`soal_id`);
+  ADD KEY `soal_id` (`soal_id`),
+  ADD KEY `idx_master_soal_id` (`master_soal_id`);
 
 --
 -- Indexes for table `exam_access_siswa`
@@ -2402,13 +2318,6 @@ ALTER TABLE `materi_kelas`
   ADD UNIQUE KEY `uniq_mk` (`materi_id`,`kelas_id`);
 
 --
--- Indexes for table `meetings`
---
-ALTER TABLE `meetings`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `ctx` (`context_type`,`context_id`);
-
---
 -- Indexes for table `nilai`
 --
 ALTER TABLE `nilai`
@@ -2442,7 +2351,8 @@ ALTER TABLE `pengumpulan_tugas`
 --
 ALTER TABLE `soal`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `assignment_id` (`assignment_id`);
+  ADD KEY `assignment_id` (`assignment_id`),
+  ADD KEY `idx_soal_bank` (`bank_soal_id`);
 
 --
 -- Indexes for table `tahun_ajaran`
@@ -2516,25 +2426,13 @@ ALTER TABLE `assignment_guru`
 -- AUTO_INCREMENT for table `bank_soal`
 --
 ALTER TABLE `bank_soal`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
--- AUTO_INCREMENT for table `chat_messages`
---
-ALTER TABLE `chat_messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `chat_threads`
---
-ALTER TABLE `chat_threads`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `detail_soal`
 --
 ALTER TABLE `detail_soal`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=130;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=182;
 
 --
 -- AUTO_INCREMENT for table `exam_access_siswa`
@@ -2558,13 +2456,13 @@ ALTER TABLE `exam_access_siswa_global_semester`
 -- AUTO_INCREMENT for table `exam_attempts`
 --
 ALTER TABLE `exam_attempts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `jawaban_siswa`
 --
 ALTER TABLE `jawaban_siswa`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `jurusan`
@@ -2582,7 +2480,7 @@ ALTER TABLE `kelas`
 -- AUTO_INCREMENT for table `log_ujian`
 --
 ALTER TABLE `log_ujian`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=175;
 
 --
 -- AUTO_INCREMENT for table `mata_pelajaran`
@@ -2603,16 +2501,10 @@ ALTER TABLE `materi_kelas`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `meetings`
---
-ALTER TABLE `meetings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `nilai`
 --
 ALTER TABLE `nilai`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `nilai_deskripsi`
@@ -2630,7 +2522,7 @@ ALTER TABLE `pengumpulan_tugas`
 -- AUTO_INCREMENT for table `soal`
 --
 ALTER TABLE `soal`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `tahun_ajaran`

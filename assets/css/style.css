@@ -31,6 +31,8 @@ html, body { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
   top: 0;
   box-shadow: 2px 0 5px rgba(0,0,0,0.1);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   z-index: 1000;
 }
 .sidebar-header {
@@ -368,33 +370,36 @@ select.form-control { cursor: pointer; }
 .show-on-mobile { display: none; }
 
 /* Back button style used across pages for smooth Kembali links */
-.back-btn {
-   display: inline-flex;
-   align-items: center;
-   gap: 8px;
-   padding: 8px 12px;
-   border-radius: 6px;
-   background: #f3f6ff;
-   color: #1f6feb;
-   border: 1px solid rgba(31,111,235,0.12);
-   text-decoration: none;
-   font-weight: 600;
-   transition: transform .12s ease, opacity .12s ease;
+.back-btn,
+a.btn-back,
+a.back,
+.btn-back,
+button.back {
+   display: inline-flex !important;
+   align-items: center !important;
+   gap: 8px !important;
+   padding: 8px 12px !important;
+   border-radius: 6px !important;
+   background: #f3f6ff !important;
+   color: #1f6feb !important;
+   border: 1px solid rgba(31,111,235,0.12) !important;
+   text-decoration: none !important;
+   font-weight: 600 !important;
+   transition: transform .12s ease, opacity .12s ease !important;
 }
-.back-btn:hover { transform: translateY(-1px); opacity: .95; }
+.back-btn:hover,
+a.btn-back:hover,
+a.back:hover,
+.btn-back:hover,
+button.back:hover { transform: translateY(-1px); opacity: .95; }
 
 /* Tambahkan ikon panah kiri sebelum label (visual only) */
-.back-btn::before {
-   content: '';
-   display: inline-block;
-   width: 14px;
-   height: 14px;
-   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f6feb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg>");
-   background-repeat: no-repeat;
-   background-position: center;
-   background-size: 14px 14px;
-   transform: translateY(0);
-}
+/* Remove any left-arrow icon from legacy back buttons */
+.back-btn::before,
+a.btn-back::before,
+a.back::before,
+.btn-back::before,
+button.back::before { content: none !important; display: none !important; }
 
 /* Ensure page headers align title and actions (back button) properly */
 .header, .page-header, .header-bar, .card-header {
@@ -402,6 +407,14 @@ select.form-control { cursor: pointer; }
    align-items: center;
    justify-content: space-between;
    gap: 12px;
+}
+/* Force back button colors in headers/cards with dark or white text overrides */
+.header .back-btn, .page-header .back-btn, .header-bar .back-btn, .card-header .back-btn,
+.header a.btn-back, .page-header a.btn-back, .header-bar a.btn-back, .card-header a.btn-back,
+.header a.back, .page-header a.back, .header-bar a.back, .card-header a.back {
+   background: #f3f6ff !important;
+   color: #1f6feb !important;
+   border-color: rgba(31,111,235,0.12) !important;
 }
 
 /* Make back-btn sit to the far right when placed alongside a heading */
@@ -449,22 +462,25 @@ select.form-control { cursor: pointer; }
    ============================================= */
 @media (max-width: 768px) {
   html, body { font-size: 15px; line-height: 1.5; }
+  /* Prevent horizontal overflow on mobile */
+  html, body { width: 100%; overflow-x: hidden; }
   /* Layout */
   .sidebar { width: 0 !important; overflow: hidden; }
-  .sidebar.active { width: 260px !important; }
+  .sidebar.active { width: 260px !important; overflow-y: auto !important; height: 100vh; }
+  body.sidebar-open { overflow: hidden !important; touch-action: none; }
   .main-content { margin-left: 0 !important; }
   .top-bar { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px; }
   .top-bar h1 { font-size: 18px; }
   .user-info { gap: 10px; }
-  .content-area { padding: 16px; }
+  .content-area { padding: 16px; max-width: 100%; overflow-x: hidden; }
   .card-body { padding: 14px; }
   .card-header { padding: 12px 14px; }
   /* UI elements */
   .btn { padding: 8px 12px; font-size: 14px; }
   table th, table td { padding: 10px 12px; }
   .table-container, .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .dashboard-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-  .shortcut-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .shortcut-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .modal-content { width: 94% !important; }
   /* Utility toggles */
   .hide-on-mobile { display: none !important; }
@@ -503,6 +519,12 @@ select.form-control { cursor: pointer; }
    .shortcut-item .icon { font-size: 26px; }
    /* Hide heavy charts on smaller screens to reduce clutter */
    .chart-container { display: none; }
+/* Quick Actions mobile tidy: 1 column, full width buttons */
+  .quick-actions { overflow: hidden; }
+  .quick-actions .action-buttons { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .quick-actions .action-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border: 1px solid #e6eefb; border-radius: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .quick-actions .action-btn i { font-size: 16px; flex: 0 0 auto; }
+
 }
 
 @media (max-width: 576px) {
@@ -535,9 +557,18 @@ select.form-control { cursor: pointer; }
 }
 .chart-toggle:active { transform: translateY(1px); }
 
-/* Ensure hamburger visible on mobile */
-.hamburger-toggle { display: none; }
-@media (max-width: 768px) { .hamburger-toggle { display: inline-flex; } }
+/* Ensure hamburger visible on mobile (hide on desktop) */
+.hamburger-toggle { display: none !important; }
+@media (max-width: 768px) { .hamburger-toggle { display: inline-flex !important; } }
+
+/* Map legacy back links to styled back button across the app */
+a[href*="kembali" i], a[href*="back" i] {
+   text-decoration: none !important;
+   color: #1f6feb !important;
+}
+/* Also neutralize any literal < or <- characters used as icons near back text */
+.back-btn, a.btn-back, a.back, .btn-back, button.back { }
+.back-btn i, a.btn-back i, a.back i, .btn-back i, button.back i { color: inherit !important; }
 
 /* --- ACTION ICONS: use inline SVGs (data URIs) instead of emoji for crisp rendering --- */
 /* Apply to last column in builder tables (Edit / Bank / Delete) */
@@ -592,3 +623,10 @@ select.form-control { cursor: pointer; }
 
 /* Import mobile overrides (keamanan: file berada di folder yang sama) */
 @import url("mobile.css");
+/* Force hide any strip-3/hamburger markers on desktop, show on mobile */
+@media (min-width: 769px) {
+  .strip-3, .strip3, .stip-3, .stip3, [data-strip="3"], .hamburger-toggle { display: none !important; }
+}
+@media (max-width: 768px) {
+  .strip-3, .strip3, .stip-3, .stip3, [data-strip="3"], .hamburger-toggle { display: inline-flex !important; }
+}

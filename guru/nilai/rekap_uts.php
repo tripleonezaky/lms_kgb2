@@ -9,7 +9,6 @@ require_once __DIR__ . '/../../includes/functions.php';
 
 $guru_id = (int)($_SESSION['user_id'] ?? 0);
 
-@query("ALTER TABLE assignment_guru ADD COLUMN kkm INT NULL AFTER tahun_ajaran_id");
 
 function get_assignments_guru_rekap($guru_id){
     $sql = "SELECT ag.id, ag.kkm, ag.kelas_id, ag.mapel_id, ag.tahun_ajaran_id, 
@@ -33,7 +32,8 @@ function fetch_kontext($assignment_id){
     return $res ? fetch_assoc($res) : null;
 }
 function fetch_siswa_kelas($kelas_id){
-    $sql = "SELECT u.id, u.nama_lengkap, u.nisn, u.nis FROM users u WHERE u.role='siswa' AND u.kelas_id=".(int)$kelas_id." ORDER BY u.nama_lengkap";
+    // pastikan nisn ikut dipilih
+    $sql = "SELECT u.id, u.nama_lengkap, u.nisn FROM users u WHERE u.role='siswa' AND u.kelas_id=".(int)$kelas_id." ORDER BY u.nama_lengkap";
     return fetch_all(query($sql));
 }
 function nilai_formatif($siswa_id,$mapel_id,$kelas_id,$tahun_ajaran_id,$semester){
@@ -196,9 +196,9 @@ if ($ctx && isset($_GET['export_csv']) && (int)$_GET['export_csv']===1) {
     header('Content-Disposition: attachment; filename=rekap_uts_'.preg_replace('/\s+/','_', $ctx['nama_mapel']).'_'.preg_replace('/\s+/','_', $ctx['nama_kelas']).'_'.strtolower($semester).'.csv');
     echo "\xEF\xBB\xBF"; // UTF-8 BOM for Excel
     echo "sep=\t\r\n"; // Excel separator hint (TAB)
-    echo "No\tNIS\tNama Siswa\tKKM\tFormatif\tPredikat\tUTS\tPredikat\tKeterangan\r\n";
+    echo "No\tNISN\tNama Siswa\tKKM\tFormatif\tPredikat\tUTS\tPredikat\tKeterangan\r\n";
     $no=1; foreach ($rows as $r){
-        $nis=$r['nisn'] ?: ($r['nis'] ?: '');
+        $nis=$r['nisn'] ?: '';
         $fmt=nilai_formatif((int)$r['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
         $uts=nilai_uts((int)$r['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
         $ket=($fmt!==null && $uts!==null && $fmt>=$kkm_val && $uts>=$kkm_val)?'Tuntas':'Belum Tuntas';
@@ -224,9 +224,9 @@ if ($ctx && isset($_GET['export']) && (int)$_GET['export']===1) {
     header('Content-Disposition: attachment; filename=rekap_uts_'.preg_replace('/\s+/','_', $ctx['nama_mapel']).'_'.preg_replace('/\s+/','_', $ctx['nama_kelas']).'_'.strtolower($semester).'.xls');
     echo "<html><head><meta charset='UTF-8'></head><body>";
     echo '<table border="1">';
-    echo '<tr><th>No</th><th>NIS</th><th>Nama Siswa</th><th>KKM</th><th>Formatif</th><th>Predikat</th><th>UTS</th><th>Predikat</th><th>Keterangan</th></tr>';
+    echo '<tr><th>No</th><th>NISN</th><th>Nama Siswa</th><th>KKM</th><th>Formatif</th><th>Predikat</th><th>UTS</th><th>Predikat</th><th>Keterangan</th></tr>';
     $no=1; foreach ($rows as $r){
-        $nis=$r['nisn'] ?: ($r['nis'] ?: '');
+        $nis=$r['nisn'] ?: '';
         $fmt=nilai_formatif((int)$r['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
         $uts=nilai_uts((int)$r['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
         $ket=($fmt!==null && $uts!==null && $fmt>=$kkm_val && $uts>=$kkm_val)?'Tuntas':'Belum Tuntas';
@@ -321,9 +321,9 @@ $flash = get_flash();
               <input type="number" name="kkm" value="<?php echo (int)$kkm_val; ?>" min="1" max="100" required />
             </div>
             <div class="col" style="flex:0 0 auto"><button class="btn" type="submit" name="save_kkm" value="1">Simpan KKM</button></div>
-            <div class="col" style="flex:0 0 auto"><a class="btn" href="rekap_uts.php?assignment_id=<?php echo (int)$assignment_id; ?>&semester=<?php echo urlencode($semester); ?>&export=1">Export XLS</a></div>
-            <div class="col" style="flex:0 0 auto"><a class="btn" href="rekap_uts.php?assignment_id=<?php echo (int)$assignment_id; ?>&semester=<?php echo urlencode($semester); ?>&export_csv=1">Export CSV</a></div>
-            <div class="col" style="flex:0 0 auto"><button class="btn" type="button" onclick="window.print()">Print</button></div>
+            <div class="col" style="flex:0 0 auto"><a class="btn" title="Download sebagai XLS" href="rekap_uts.php?assignment_id=<?php echo (int)$assignment_id; ?>&semester=<?php echo urlencode($semester); ?>&export=1"><i class="fas fa-file-excel" aria-hidden="true"></i> XLS</a></div>
+            <div class="col" style="flex:0 0 auto"><a class="btn" title="Download sebagai CSV" href="rekap_uts.php?assignment_id=<?php echo (int)$assignment_id; ?>&semester=<?php echo urlencode($semester); ?>&export_csv=1"><i class="fas fa-file-csv" aria-hidden="true"></i> CSV</a></div>
+            <div class="col" style="flex:0 0 auto"><button class="btn" type="button" title="Cetak" onclick="window.print()"><i class="fas fa-print" aria-hidden="true"></i> Print</button></div>
             <div class="col" style="flex:1 1 auto"><div class="muted">Konteks: <?php echo htmlspecialchars(($ctx['nama_mapel'].' - '.$ctx['nama_kelas'].' ('.$ctx['nama_tahun_ajaran'].')') ?? ''); ?></div></div>
           </form>
           <?php
@@ -374,31 +374,31 @@ $flash = get_flash();
             <input type="hidden" name="tahun_ajaran_id" value="<?php echo (int)$ctx['tahun_ajaran_id']; ?>" />
             <div style="margin-bottom:10px"><button class="btn" type="submit" name="save_bulk" value="1">Simpan Semua</button></div>
           <div class="scroll-x">
-            <table class="table">
+            <table class="table" id="rekap-uts-table" data-kkm="<?php echo (int)$kkm_val; ?>">
               <thead>
                 <tr>
-                  <th>No.</th><th>NIS</th><th>Nama Siswa</th><th>KKM</th><th>Formatif</th><th>Predikat</th><th>UTS</th><th>Predikat</th><th>Keterangan</th>
+                  <th>No.</th><th>NISN</th><th>Nama Siswa</th><th>KKM</th><th>Formatif</th><th>Predikat</th><th>UTS</th><th>Predikat</th><th>Keterangan</th>
                 </tr>
               </thead>
               <tbody>
                 <?php if (!$siswa_list): ?>
                   <tr><td colspan="9" style="text-align:center">Tidak ada siswa pada kelas ini.</td></tr>
                 <?php else: $no=1; foreach ($siswa_list as $s): 
-                  $nis = $s['nisn'] ?: ($s['nis'] ?: '');
-                  $fmt = nilai_formatif((int)$s['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
-                  $uts = nilai_uts((int)$s['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
-                  $ket = ($fmt!==null && $uts!==null && $fmt>=$kkm_val && $uts>=$kkm_val) ? 'Tuntas' : 'Belum Tuntas';
+                $nis = $s['nisn'] ?: '';
+                $fmt = nilai_formatif((int)$s['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
+                $uts = nilai_uts((int)$s['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
+                $ket = ($fmt!==null && $uts!==null && $fmt>=$kkm_val && $uts>=$kkm_val) ? 'Tuntas' : 'Belum Tuntas';
                 ?>
                   <tr>
                     <td style="text-align:center"><?php echo $no++; ?></td>
                     <td><?php echo htmlspecialchars(($nis) ?? ''); ?></td>
                     <td><?php echo htmlspecialchars(($s['nama_lengkap']) ?? ''); ?></td>
                     <td style="text-align:center"><?php echo (int)$kkm_val; ?></td>
-                    <td style="text-align:center"><input type="number" step="0.01" min="0" max="100" name="formatif[<?php echo (int)$s['id']; ?>]" value="<?php echo $fmt!==null? htmlspecialchars(number_format($fmt,2,'.','')) : ''; ?>" style="width:100px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;text-align:right"></td>
-                    <td style="text-align:center"><?php echo htmlspecialchars((to_predikat($fmt) ?? '')); ?></td>
-                    <td style="text-align:center"><input type="number" step="0.01" min="0" max="100" name="uts[<?php echo (int)$s['id']; ?>]" value="<?php echo $uts!==null? htmlspecialchars(number_format($uts,2,'.','')) : ''; ?>" style="width:100px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;text-align:right"></td>
-                    <td style="text-align:center"><?php echo htmlspecialchars((to_predikat($uts) ?? '')); ?></td>
-                    <td style="text-align:center"><?php echo htmlspecialchars(($ket) ?? ''); ?></td>
+                    <td style="text-align:center"><input class="in-fmt" data-sid="<?php echo (int)$s['id']; ?>" type="number" step="0.01" min="0" max="100" name="formatif[<?php echo (int)$s['id']; ?>]" value="<?php echo $fmt!==null? htmlspecialchars(number_format($fmt,2,'.','')) : ''; ?>" style="width:100px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;text-align:right"></td>
+                    <td style="text-align:center" class="pred-fmt" data-sid="<?php echo (int)$s['id']; ?>"><?php echo htmlspecialchars((to_predikat($fmt) ?? '')); ?></td>
+                    <td style="text-align:center"><input class="in-uts" data-sid="<?php echo (int)$s['id']; ?>" type="number" step="0.01" min="0" max="100" name="uts[<?php echo (int)$s['id']; ?>]" value="<?php echo $uts!==null? htmlspecialchars(number_format($uts,2,'.','')) : ''; ?>" style="width:100px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;text-align:right"></td>
+                    <td style="text-align:center" class="pred-uts" data-sid="<?php echo (int)$s['id']; ?>"><?php echo htmlspecialchars((to_predikat($uts) ?? '')); ?></td>
+                    <td style="text-align:center" class="ket" data-sid="<?php echo (int)$s['id']; ?>"><?php echo htmlspecialchars(($ket) ?? ''); ?></td>
                   </tr>
                 <?php endforeach; endif; ?>
               </tbody>
@@ -411,6 +411,38 @@ $flash = get_flash();
       </div>
     </div>
   </div>
+  <script>
+    (function(){
+      function toPredikat(n){
+        if(n===null||n===''||isNaN(n)) return '';
+        n = parseFloat(n);
+        if(n>=85) return 'A'; if(n>=75) return 'B'; if(n>=60) return 'C'; return 'D';
+      }
+      var table = document.getElementById('rekap-uts-table');
+      if(!table) return;
+      var kkm = parseInt(table.getAttribute('data-kkm')||'75',10);
+      function updateRow(sid){
+        var fmtEl = document.querySelector('.in-fmt[data-sid="'+sid+'"]');
+        var utsEl = document.querySelector('.in-uts[data-sid="'+sid+'"]');
+        var predFmtEl = document.querySelector('.pred-fmt[data-sid="'+sid+'"]');
+        var predUtsEl = document.querySelector('.pred-uts[data-sid="'+sid+'"]');
+        var ketEl = document.querySelector('.ket[data-sid="'+sid+'"]');
+        var vFmt = fmtEl && fmtEl.value ? parseFloat(fmtEl.value) : null;
+        var vUts = utsEl && utsEl.value ? parseFloat(utsEl.value) : null;
+        predFmtEl && (predFmtEl.textContent = toPredikat(vFmt));
+        predUtsEl && (predUtsEl.textContent = toPredikat(vUts));
+        var ket = (vFmt!=null && vUts!=null && vFmt>=kkm && vUts>=kkm) ? 'Tuntas' : 'Belum Tuntas';
+        if(!(vFmt!=null && vUts!=null)) ket = '';
+        ketEl && (ketEl.textContent = ket);
+      }
+      document.querySelectorAll('.in-fmt,.in-uts').forEach(function(el){
+        el.addEventListener('input', function(){
+          var sid = this.getAttribute('data-sid');
+          updateRow(sid);
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
 

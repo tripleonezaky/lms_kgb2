@@ -116,6 +116,10 @@ $result_guru_top = mysqli_query($conn, $query_guru_top);
     <title>Dashboard Admin - LMS KGB2</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
+        /* Quick Access icon color (desktop + mobile) */
+        .shortcut-item .icon i { color: #1e5ba8; }
+        .shortcut-item .icon { background: #e3f2fd; border: 1px solid #dbeafe; border-radius: 10px; width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 8px auto; }
+
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -186,6 +190,19 @@ $result_guru_top = mysqli_query($conn, $query_guru_top);
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+        }
+        /* Mobile improvements for admin dashboard */
+        @media (max-width: 768px) {
+            /* smaller stat cards and 2 columns */
+            .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .stat-card { padding: 12px; border: 1px solid #e9ecef; box-shadow: none; }
+            .stat-card .stat-icon { font-size: 20px; margin-bottom: 6px; }
+            .stat-card .stat-number { font-size: 20px; margin: 4px 0; }
+            .stat-card .stat-label { font-size: 11px; }
+            /* charts always visible on mobile */
+            .chart-container { display: block !important; width: 100%; overflow-x: auto; }
+            .chart-bar-outer { height: 20px; }
+            .chart-bar-inner { font-size: 11px; }
         }
         
         .chart-container h3 {
@@ -263,16 +280,16 @@ $result_guru_top = mysqli_query($conn, $query_guru_top);
         }
         
         .info-box {
-            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            background: #e3f2fd;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
-            border-left: 5px solid #ff6b6b;
+            border-left: 5px solid #1e5ba8;
         }
         
         .info-box h3 {
             margin-top: 0;
-            color: #c92a2a;
+            color: #1e5ba8;
         }
     </style>
 </head>
@@ -351,7 +368,7 @@ $result_guru_top = mysqli_query($conn, $query_guru_top);
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
                 
                 <!-- Distribusi Siswa per Kelas -->
-                <div class="chart-container">
+                <div id="chart-kelas" class="chart-container">
                     <h3><i class="fas fa-chart-bar" aria-hidden="true"></i> Distribusi Siswa per Kelas</h3>
                     <?php 
                     if($result_siswa_per_kelas && mysqli_num_rows($result_siswa_per_kelas) > 0) {
@@ -390,7 +407,7 @@ $result_guru_top = mysqli_query($conn, $query_guru_top);
                 </div>
                 
                 <!-- Distribusi Siswa per Jurusan -->
-                <div class="chart-container">
+                <div id="chart-jurusan" class="chart-container">
                     <h3><i class="fas fa-chart-bar" aria-hidden="true"></i> Distribusi Siswa per Jurusan</h3>
                     <?php 
                     if($result_siswa_per_jurusan && mysqli_num_rows($result_siswa_per_jurusan) > 0) {
@@ -431,7 +448,7 @@ $result_guru_top = mysqli_query($conn, $query_guru_top);
             </div>
             
             <!-- Top Guru -->
-            <div class="chart-container">
+            <div id="chart-top-guru" class="chart-container">
                 <h3><i class="fas fa-award" aria-hidden="true"></i> Top 5 Guru dengan Assignment Terbanyak</h3>
                 <div class="table-container">
                     <table>

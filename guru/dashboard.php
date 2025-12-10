@@ -101,22 +101,36 @@ $sql_materi_terbaru = "SELECT m.id, m.judul_materi, m.tanggal_upload,
                        LIMIT 5";
 $result_materi_terbaru = query($sql_materi_terbaru);
 $materi_terbaru = fetch_all($result_materi_terbaru);
-// Ambil daftar ujian terbaru untuk ditampilkan di dashboard (ringkasan)
-$sql_ujian_dashboard = "SELECT s.id, s.judul_ujian, s.waktu_mulai, s.waktu_selesai, mp.nama_mapel, k.nama_kelas
+// Ambil daftar ujian terbaru, dikelompokkan per judul (ringkasan seperti di Kelola Ujian)
+$sql_ujian_dashboard = "SELECT 
+                           s.judul_ujian,
+                           MIN(s.waktu_mulai) AS waktu_mulai,
+                           MAX(s.waktu_selesai) AS waktu_selesai,
+                           COUNT(*) AS kelas_count,
+                           MIN(s.id) AS example_soal_id,
+                           MAX(mp.nama_mapel) AS nama_mapel
                        FROM soal s
                        JOIN assignment_guru ag ON s.assignment_id = ag.id
                        JOIN mata_pelajaran mp ON ag.mapel_id = mp.id
-                       JOIN kelas k ON ag.kelas_id = k.id
                        WHERE ag.guru_id = '$guru_id'
-                       ORDER BY s.waktu_mulai DESC
-                       LIMIT 6";
+                       GROUP BY s.judul_ujian
+                       ORDER BY waktu_mulai DESC
+                       LIMIT 5";
 $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Force-fit viewport on mobile immediately after load to avoid needing manual resize
+      (function(){
+        function fit(){ try{ document.documentElement.style.maxWidth='100vw'; document.documentElement.style.overflowX='hidden'; document.body.style.maxWidth='100vw'; document.body.style.overflowX='hidden'; }catch(e){} }
+        if (document.readyState === 'complete' || document.readyState === 'interactive') { fit(); }
+        window.addEventListener('load', fit);
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Dashboard Guru - LMS SMKS KGB2</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -353,6 +367,9 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
             font-weight: 700;
             margin-bottom: 10px;
         }
+        @media (max-width:768px){
+            .welcome-content h2 { font-size: 20px; }
+        }
         
         .welcome-content p {
             font-size: 14px;
@@ -381,14 +398,15 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
         }
         
         .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            background: #f8f9fa;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            box-shadow: none;
             display: flex;
             align-items: center;
-            gap: 20px;
-            transition: all 0.3s;
+            gap: 12px;
+            transition: none;
         }
         
         .stat-card:hover {
@@ -397,14 +415,16 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
         }
         
         .stat-icon {
-            width: 65px;
-            height: 65px;
-            border-radius: 15px;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
-            color: white;
+            font-size: 16px;
+            color: #1e5ba8;
+            background: #e3f2fd;
+            border: 1px solid #dbeafe;
         }
         
         .stat-icon.blue { background: linear-gradient(135deg, #1e5ba8, #3a7bc8); }
@@ -414,16 +434,17 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
         .stat-icon.purple { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
         
         .stat-info h3 {
-            font-size: 30px;
+            font-size: 20px;
             color: #2C3E50;
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .stat-info p {
-            font-size: 13px;
+            font-size: 12px;
             color: #7f8c8d;
             font-weight: 500;
+            margin: 0;
         }
         
         /* Quick Actions */
@@ -433,6 +454,15 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
             border-radius: 15px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.08);
             margin-bottom: 30px;
+        }
+        /* Desktop restores original quick actions layout */
+        @media (min-width: 769px){
+            .quick-actions { background:#fff; padding:25px; border-radius:15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+            .quick-actions .action-buttons { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:15px; justify-items: stretch; }
+            .quick-actions .action-btn { display:flex; align-items:center; gap:12px; padding:18px 20px; background:#fff; border:2px solid #e9ecef; border-radius:12px; color:#2C3E50; font-weight:600; font-size:14px; width:auto; }
+            .quick-actions .action-btn i { font-size:20px; color:#1e5ba8; }
+            .quick-actions .action-btn:hover { background:#1e5ba8; color:#fff; border-color:#1e5ba8; transform: translateY(-3px); box-shadow: 0 5px 15px rgba(30, 91, 168, 0.3); }
+            .quick-actions .action-btn:hover i { color:#fff; }
         }
         
         .section-title {
@@ -449,6 +479,7 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
+            justify-items: start;
         }
         
         .action-btn {
@@ -673,6 +704,9 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
             
             .content-area {
                 padding: 20px;
+                max-width: 100vw;
+                width: 100%;
+                overflow-x: hidden;
             }
             
             .stats-grid {
@@ -687,6 +721,12 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
                 flex-direction: column;
                 text-align: center;
             }
+
+            /* Quick Actions mobile tidy: 1 column, full width buttons */
+            .quick-actions { overflow: hidden; }
+            .quick-actions .action-buttons { display: grid; grid-template-columns: 1fr; gap: 10px; justify-items: start; }
+            .quick-actions .action-btn { display: inline-flex; align-items: center; gap: 10px; width: auto; max-width: 100%; padding: 12px 14px; border: 1px solid #e6eefb; border-radius: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .quick-actions .action-btn i { font-size: 16px; flex: 0 0 auto; }
             
             /* Compact Ujian Saya panel - ringkasan seperti Kelola Ujian */
             .content-panel { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 18px; border: 1px solid #eef2f6; }
@@ -703,6 +743,8 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
             .action-btn i { font-size:14px; }
             @media (max-width:768px) {
                 .content-panel .item { flex-direction:column; align-items:flex-start; gap:8px; }
+                .content-panel .item .item-title { max-width:100% !important; white-space: normal !important; word-break: break-word; overflow-wrap: anywhere; display:block; }
+                .content-panel .item .item-meta { flex-wrap: wrap; white-space: normal; width: 100%; gap: 8px; }
             }
         }
     </style>
@@ -817,7 +859,7 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
             <!-- Welcome Card -->
             <div class="welcome-card">
                 <div class="welcome-content">
-                    <h2><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i> Selamat Datang, <?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?>!</h2>
+                    <h2>Selamat Datang, <?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?>!</h2>
                     <p>Kelola materi pembelajaran dan berikan tugas kepada siswa dengan mudah dan efisien.</p>
                     <?php if ($tahun_ajaran_aktif): ?>
                         <div class="tahun-ajaran-badge">
@@ -969,8 +1011,8 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
                     </div>
                 </div>
                 
-                <!-- Panel Ujian Saya (ringkasan) -->
-                <div class="content-panel">
+                <!-- Panel Ujian Saya (ringkasan, disamakan dengan tampilan di Kelola Ujian -> Ujian Saya) -->
+                <div class="content-panel" style="margin-top: 25px;">
                     <div class="panel-header">
                         <h3><i class="fas fa-file-alt"></i> Ujian Saya</h3>
                         <a href="ujian/index.php">Kelola Ujian</a>
@@ -978,20 +1020,20 @@ $ujian_dashboard = fetch_all(query($sql_ujian_dashboard));
                     <?php if (!empty($ujian_dashboard)): ?>
                         <div class="item-list">
                             <?php foreach ($ujian_dashboard as $u): ?>
-                                <div class="item">
-                                    <div class="item-header">
-                                        <div>
-                                            <div class="item-title"><?php echo htmlspecialchars(($u['judul_ujian']) ?? ''); ?></div>
-                                            <div class="item-meta">
-                                                <span><i class="fas fa-book"></i> <?php echo htmlspecialchars(($u['nama_mapel']) ?? ''); ?></span>
-                                                <span><i class="fas fa-chalkboard"></i> <?php echo htmlspecialchars(($u['nama_kelas']) ?? ''); ?></span>
-                                                <span><i class="fas fa-clock"></i> <?php echo htmlspecialchars(($u['waktu_mulai']) ?? ''); ?> - <?php echo htmlspecialchars(($u['waktu_selesai']) ?? ''); ?></span>
-                                            </div>
+                                <div class="item" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                                    <div style="display:flex; align-items:center; gap:14px; flex:1; min-width:0;">
+                                        <div class="item-title" style="font-size:14px; font-weight:600; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">
+                                            <?php echo htmlspecialchars(($u['judul_ujian']) ?? ''); ?>
                                         </div>
-                                        <div style="display:flex;gap:8px;align-items:center">
-                                            <a class="action-btn" href="ujian/index.php?action=builder&soal_id=<?php echo (int)$u['id']; ?>"><i class="fas fa-edit"></i></a>
-                                            <a class="action-btn" href="ujian/index.php?action=delete_force&id=<?php echo (int)$u['id']; ?>" title="Hapus Paksa" onclick="return confirm('Hapus paksa?');"><i class="fas fa-trash" aria-hidden="true"></i></a>
+                                        <div class="item-meta" style="display:flex; align-items:center; gap:12px; font-size:12px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                            <span><i class="fas fa-book"></i> <?php echo htmlspecialchars(($u['nama_mapel']) ?? ''); ?></span>
+                                            <span class="item-badge badge-green" style="padding:2px 8px;border-radius:999px;background:#e8f5e9;color:#27ae60;font-weight:600;"><?php echo (int)($u['kelas_count'] ?? 1); ?> kelas</span>
+                                            <span><i class="fas fa-clock"></i> <?php echo htmlspecialchars(($u['waktu_mulai']) ?? ''); ?> - <?php echo htmlspecialchars(($u['waktu_selesai']) ?? ''); ?></span>
                                         </div>
+                                    </div>
+                                    <div style="display:flex;gap:8px;align-items:center; flex-shrink:0;">
+                                        <a class="action-btn" href="ujian/index.php?action=builder&soal_id=<?php echo (int)$u['example_soal_id']; ?>" title="Edit"><i class="fas fa-pen"></i></a>
+                                        <a class="action-btn" href="ujian/index.php" title="Kelola"><i class="fas fa-eye"></i></a>
                                     </div>
                                 </div>
                             <?php endforeach; ?>

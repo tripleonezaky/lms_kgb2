@@ -9,6 +9,10 @@ function toggleSidebar() {
     sidebar.classList.toggle('active');
     if (sidebar.classList.contains('active')) {
         applySidebarHeight();
+        // lock body scroll when sidebar open (mobile UX)
+        document.body.classList.add('sidebar-open');
+    } else {
+        document.body.classList.remove('sidebar-open');
     }
 }
 
@@ -39,9 +43,43 @@ function confirmDelete(message) {
     return confirm(message || 'Apakah Anda yakin ingin menghapus data ini?');
 }
 
-// Auto hide alert after 5 seconds
+// Auto hide alert after 5 seconds + global back button handler
 document.addEventListener('DOMContentLoaded', function() {
     const alerts = document.querySelectorAll('.alert');
+    // Global back button behavior
+    try {
+      document.body.addEventListener('click', function(e){
+        const link = e.target.closest('.back-btn, a.btn-back, a.back, .btn-back, button.back');
+        if (!link) return;
+        if (link.hasAttribute('data-no-history')) return; // opt-out
+        let href = link.getAttribute('href') || '';
+        const text = (link.textContent || link.innerText || '').trim().toLowerCase();
+        const isDashboardBack = link.dataset.dashboard || /kembali\s+ke\s+dashboard|back\s+to\s+dashboard/i.test(text);
+        const roleFromAttr = (link.dataset.dashboard || '').toLowerCase();
+        // Build dashboard URL based on role context or attribute
+        function resolveDashboard(){
+          if (roleFromAttr === 'admin') return '/lms_kgb2/admin/dashboard.php';
+          if (roleFromAttr === 'guru') return '/lms_kgb2/guru/dashboard.php';
+          if (roleFromAttr === 'siswa') return '/lms_kgb2/siswa/dashboard.php';
+          const path = (window.location.pathname || '').toLowerCase();
+          if (path.indexOf('/admin/') >= 0) return '/lms_kgb2/admin/dashboard.php';
+          if (path.indexOf('/guru/') >= 0) return '/lms_kgb2/guru/dashboard.php';
+          if (path.indexOf('/siswa/') >= 0) return '/lms_kgb2/siswa/dashboard.php';
+          return '/lms_kgb2/';
+        }
+        e.preventDefault();
+        // If this is an explicit dashboard back, go to dashboard directly
+        if (isDashboardBack || /\/dashboard\.php$/i.test(href)) {
+          const to = /\/dashboard\.php$/i.test(href) ? href : resolveDashboard();
+          window.location.href = to;
+          return;
+        }
+        // Otherwise normal back logic
+        if (window.history && window.history.length > 1) { window.history.back(); }
+        else if (href && href !== '#') { window.location.href = href; }
+        else { window.location.href = resolveDashboard(); }
+      }, false);
+    } catch (e) { /* no-op */ }
     alerts.forEach(alert => {
         setTimeout(() => {
             alert.style.animation = 'fadeOut 0.5s ease';
@@ -154,15 +192,46 @@ function validateForm(formId) {
     return isValid;
 }
 
+// Remove any hamburger icons on desktop (strict cleanup)
+function removeHamburgersOnDesktop(){
+  try {
+    var vw = (window.innerWidth || document.documentElement.clientWidth || 1024);
+    if (vw <= 768) return; // only act on desktop
+    var scopes = [];
+    var tb = document.querySelector('.top-bar');
+    var tn = document.querySelector('.top-navbar');
+    if (tb) scopes.push(tb);
+    if (tn && tn !== tb) scopes.push(tn);
+    // Remove injected .hamburger-toggle
+    scopes.forEach(function(root){
+      Array.from(root.querySelectorAll('.hamburger-toggle')).forEach(function(el){ try { el.remove(); } catch(e){} });
+    });
+    // Remove any element that visually is a hamburger (innerText === '☰') without class
+    scopes.forEach(function(root){
+      Array.from(root.querySelectorAll('button, a, i, span, div')).forEach(function(el){
+        try {
+          var txt = (el.textContent || el.innerText || '').trim();
+          if (txt === '\u2630' || txt === '☰') { el.remove(); }
+        } catch(e){}
+      });
+    });
+  } catch(e) { /* no-op */ }
+}
+
 // Inject hamburger button into any page that has a .top-bar or .top-navbar and a .sidebar
 (function(){
   try {
     document.addEventListener('DOMContentLoaded', function(){
+      // Desktop cleanup first to avoid flashes
+      removeHamburgersOnDesktop();
       var sidebar = document.querySelector('.sidebar');
       var bars = document.querySelector('.top-bar') || document.querySelector('.top-navbar');
       if (!sidebar || !bars) return;
       // Avoid duplicate injection
       if (bars.querySelector('.hamburger-toggle')) return;
+      // Only inject on mobile/tablet (<= 768px)
+      var vw = (window.innerWidth || document.documentElement.clientWidth || 1024);
+      if (vw > 768) return;
       var btn = document.createElement('button');
       btn.className = 'hamburger-toggle show-on-mobile btn btn-primary';
       btn.type = 'button';
@@ -186,6 +255,8 @@ function validateForm(formId) {
         bars.insertBefore(btn, bars.firstChild);
       }
     });
+    // Cleanup on resize: if viewport becomes desktop, remove any hamburger remnants
+    window.addEventListener('resize', function(){ try { removeHamburgersOnDesktop(); } catch(e){} });
   } catch(e) { /* no-op */ }
 })();
 
@@ -194,8 +265,13 @@ function applySidebarHeight() {
   try {
     var sidebar = document.querySelector('.sidebar');
     if (!sidebar) return;
-    var vh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+    var vh = (window.visualViewport && window.visualViewport.height) ? Math.round(window.visualViewport.height) : window.innerHeight;
+    // Set max/min to ensure scrollable area and account for mobile UI chrome
     sidebar.style.height = vh + 'px';
+    sidebar.style.maxHeight = vh + 'px';
+    sidebar.style.overflowY = 'auto';
+    // Ensure iOS momentum scrolling
+    sidebar.style.webkitOverflowScrolling = 'touch';
   } catch (e) {}
 }
 
@@ -207,6 +283,8 @@ function applySidebarHeight() {
     if (window.visualViewport && window.visualViewport.addEventListener) {
       window.visualViewport.addEventListener('resize', applySidebarHeight);
     }
+    // Also update on orientation change
+    window.addEventListener('orientationchange', function(){ setTimeout(applySidebarHeight, 200); });
   } catch (e) {}
 })();
 
@@ -301,42 +379,19 @@ document.addEventListener('DOMContentLoaded', function(){ try{ var nodes = docum
 
 // removed debug console log for production
 
-// Make chart containers collapsible on small screens to reduce UI clutter
+// Remove old collapsible behavior for charts: always show charts across devices
 (function(){
-  function makeCollapsibleCharts(){
+  function showAllCharts(){
     try {
-      var isMobile = (window.innerWidth || document.documentElement.clientWidth) <= 768;
-      if (!isMobile) return;
       var charts = Array.from(document.querySelectorAll('.chart-container'));
-      if (!charts || charts.length === 0) return;
-
-      charts.forEach(function(chart, idx){
-        // If already wrapped / toggled, skip
-        if (chart.dataset.collapsible === '1') return;
-        chart.dataset.collapsible = '1';
-        // Create toggle button
-        var btn = document.createElement('button');
-        btn.className = 'chart-toggle show-on-mobile';
-        btn.type = 'button';
-        btn.textContent = (idx === 0) ? 'Tampilkan Statistik' : 'Tampilkan Bagian';
-        btn.addEventListener('click', function(){
-          if (chart.style.display === 'none' || getComputedStyle(chart).display === 'none'){
-            chart.style.display = '';
-            btn.textContent = 'Sembunyikan Statistik';
-          } else {
-            chart.style.display = 'none';
-            btn.textContent = 'Tampilkan Statistik';
-          }
-        });
-        // Initially hide chart and insert button before it
-        chart.style.display = 'none';
-        chart.parentNode.insertBefore(btn, chart);
-      });
-    } catch (e) { /* no-op */ }
+      charts.forEach(function(chart){ chart.style.display = ''; });
+      // Remove any previously injected toggle buttons
+      var toggles = Array.from(document.querySelectorAll('.chart-toggle'));
+      toggles.forEach(function(btn){ btn.remove(); });
+    } catch(e){}
   }
-
-  document.addEventListener('DOMContentLoaded', makeCollapsibleCharts);
-  window.addEventListener('resize', function(){ try { makeCollapsibleCharts(); } catch(e){} });
+  document.addEventListener('DOMContentLoaded', showAllCharts);
+  window.addEventListener('resize', showAllCharts);
 })();
 
 // Auto-convert action links/buttons to icon-only by adding `icon-btn` class

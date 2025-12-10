@@ -8,7 +8,6 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/functions.php';
 
 $guru_id = (int)($_SESSION['user_id'] ?? 0);
-@query("ALTER TABLE assignment_guru ADD COLUMN kkm INT NULL AFTER tahun_ajaran_id");
 
 function get_assignments_guru_rekap($guru_id){
     $sql = "SELECT ag.id, ag.kkm, ag.kelas_id, ag.mapel_id, ag.tahun_ajaran_id, k.nama_kelas, mp.nama_mapel, ta.nama_tahun_ajaran
@@ -25,7 +24,7 @@ function fetch_kontext($assignment_id){
     return $res ? fetch_assoc($res) : null;
 }
 function fetch_siswa_kelas($kelas_id){
-    return fetch_all(query("SELECT u.id, u.nama_lengkap, u.nisn, u.nis FROM users u WHERE u.role='siswa' AND u.kelas_id=".(int)$kelas_id." ORDER BY u.nama_lengkap"));
+    return fetch_all(query("SELECT u.id, u.nama_lengkap, u.nisn FROM users u WHERE u.role='siswa' AND u.kelas_id=".(int)$kelas_id." ORDER BY u.nama_lengkap"));
 }
 function nilai_formatif($siswa_id,$mapel_id,$kelas_id,$tahun_ajaran_id,$semester){
     $sql = "SELECT ROUND(AVG(n.nilai),2) AS avg_val FROM nilai n WHERE n.siswa_id={$siswa_id} AND n.mapel_id={$mapel_id} AND n.kelas_id={$kelas_id} AND n.tahun_ajaran_id={$tahun_ajaran_id} AND n.semester='".escape_string($semester)."' AND n.jenis_penilaian IN ('Tugas','Quiz','Harian')";
@@ -90,7 +89,7 @@ if ($ctx && isset($_GET['export_csv']) && (int)$_GET['export_csv']===1) {
     echo "sep=\t\r\n"; // Excel delimiter hint -> TAB
     echo "No\tNISN\tNama Siswa\tKKM\tFormatif\tPredikat\tUAS\tPredikat\tKeterangan\r\n";
     $no=1; foreach ($rows as $r){
-        $nis=$r['nisn'] ?: ($r['nis'] ?: '');
+        $nis=$r['nisn'] ?: '';
         $fmt=nilai_formatif((int)$r['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
         $uas=nilai_uas((int)$r['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
         $ket=($fmt!==null && $uas!==null && $fmt>=$kkm_val && $uas>=$kkm_val)?'Tuntas':'Belum Tuntas';
@@ -118,7 +117,7 @@ if ($ctx && isset($_GET['export']) && (int)$_GET['export']===1) {
     echo '<table border="1">';
     echo '<tr><th>No</th><th>NISN</th><th>Nama Siswa</th><th>KKM</th><th>Formatif</th><th>Predikat</th><th>UAS</th><th>Predikat</th><th>Keterangan</th></tr>';
     $no=1; foreach ($rows as $r){
-        $nis=$r['nisn'] ?: ($r['nis'] ?: '');
+        $nis=$r['nisn'] ?: '';
         $fmt=nilai_formatif((int)$r['id'],(int)$ctx['mapel_id'],(int)$ctx['kelas_id'],(int)$ctx['tahun_ajaran_id'],$semester);
         $uas=nilai_uas((int)$r['id'],(int)$ctx['mapel_id'],(int)$ctx['kelas_id'],(int)$ctx['tahun_ajaran_id'],$semester);
         $ket=($fmt!==null && $uas!==null && $fmt>=$kkm_val && $uas>=$kkm_val)?'Tuntas':'Belum Tuntas';
@@ -169,6 +168,14 @@ $flash = get_flash();
       .table th { background: #e5e7eb !important; -webkit-print-color-adjust: exact; }
     }
   </style>
+  <style>
+    /* Ikon export yang kontras di atas tombol biru */
+    .btn.btn-icon{padding:10px 12px; display:inline-flex; align-items:center; justify-content:center}
+    .btn.btn-icon .icon-xls{color:#1d6f42; background:#e8f5ec; border-radius:6px; padding:4px 6px}
+    .btn.btn-icon .icon-csv{color:#0d6efd; background:#e8f1ff; border-radius:6px; padding:4px 6px}
+    .btn.btn-icon i.fas{font-size:16px; line-height:1}
+    .btn.btn-icon:hover .icon-xls, .btn.btn-icon:hover .icon-csv{filter:brightness(0.9)}
+  </style>
 </head>
 <body>
   <div class="container">
@@ -208,9 +215,9 @@ $flash = get_flash();
               <input type="number" name="kkm" value="<?php echo (int)$kkm_val; ?>" min="1" max="100" required />
             </div>
             <div class="col" style="flex:0 0 auto"><button class="btn" type="submit" name="save_kkm" value="1">Simpan KKM</button></div>
-            <div class="col" style="flex:0 0 auto"><a class="btn" href="rekap_uas.php?assignment_id=<?php echo (int)$assignment_id; ?>&semester=<?php echo urlencode($semester); ?>&export=1">Export XLS</a></div>
-            <div class="col" style="flex:0 0 auto"><a class="btn" href="rekap_uas.php?assignment_id=<?php echo (int)$assignment_id; ?>&semester=<?php echo urlencode($semester); ?>&export_csv=1">Export CSV</a></div>
-            <div class="col" style="flex:0 0 auto"><button class="btn" type="button" onclick="window.print()">Print</button></div>
+            <div class="col" style="flex:0 0 auto"><a class="btn btn-icon" title="Download sebagai XLS" href="rekap_uas.php?assignment_id=<?php echo (int)$assignment_id; ?>&semester=<?php echo urlencode($semester); ?>&export=1"><i class="fas fa-file-excel icon-xls" aria-hidden="true"></i></a></div>
+            <div class="col" style="flex:0 0 auto"><a class="btn btn-icon" title="Download sebagai CSV" href="rekap_uas.php?assignment_id=<?php echo (int)$assignment_id; ?>&semester=<?php echo urlencode($semester); ?>&export_csv=1"><i class="fas fa-file-csv icon-csv" aria-hidden="true"></i></a></div>
+            <div class="col" style="flex:0 0 auto"><button class="btn btn-icon" type="button" title="Cetak" onclick="window.print()"><i class="fas fa-print" aria-hidden="true"></i></button></div>
             <div class="col" style="flex:1 1 auto"><div class="muted">Konteks: <?php echo htmlspecialchars(($ctx['nama_mapel'].' - '.$ctx['nama_kelas'].' ('.$ctx['nama_tahun_ajaran'].')') ?? ''); ?></div></div>
           </form>
           <?php $siswa_list = fetch_siswa_kelas((int)$ctx['kelas_id']); ?>
@@ -232,7 +239,7 @@ $flash = get_flash();
                 <?php if (!$siswa_list): ?>
                   <tr><td colspan="9" style="text-align:center">Tidak ada siswa pada kelas ini.</td></tr>
                 <?php else: $no=1; foreach ($siswa_list as $s): 
-                  $nis = $s['nisn'] ?: ($s['nis'] ?: '');
+                  $nis = $s['nisn'] ?: '';
                   $fmt = nilai_formatif((int)$s['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
                   $uas = nilai_uas((int)$s['id'], (int)$ctx['mapel_id'], (int)$ctx['kelas_id'], (int)$ctx['tahun_ajaran_id'], $semester);
                   $ket = ($fmt!==null && $uas!==null && $fmt>=$kkm_val && $uas>=$kkm_val) ? 'Tuntas' : 'Belum Tuntas';

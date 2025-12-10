@@ -116,7 +116,7 @@ $tugas_terbaru = $res_tugas_baru ? fetch_all($res_tugas_baru) : [];
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Dashboard Siswa - LMS SMKS KGB2</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -159,6 +159,7 @@ $tugas_terbaru = $res_tugas_baru ? fetch_all($res_tugas_baru) : [];
         .stat-info p { font-size: 14px; color: #7f8c8d; font-weight: 500; }
         .welcome-card { background: linear-gradient(135deg, #1e5ba8 0%, #3a7bc8 100%); padding: 40px; border-radius: 20px; color: white; margin-bottom: 30px; box-shadow: 0 10px 40px rgba(30, 91, 168, 0.3); display: flex; justify-content: space-between; align-items: center; }
         .welcome-content h2 { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+        @media (max-width: 768px){ .welcome-content h2 { font-size: 20px; } }
         .welcome-content p { font-size: 15px; opacity: 0.95; line-height: 1.6; margin-bottom: 15px; }
         .kelas-badge { background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 25px; display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
         .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
@@ -268,7 +269,7 @@ $tugas_terbaru = $res_tugas_baru ? fetch_all($res_tugas_baru) : [];
             <!-- Welcome Card -->
             <div class="welcome-card">
                 <div class="welcome-content">
-                    <h2>🎓 Selamat Datang, <?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?>!</h2>
+                    <h2>Selamat Datang, <?php echo htmlspecialchars(($_SESSION['nama_lengkap']) ?? ''); ?>!</h2>
                     <p>Semangat belajar! Akses materi pembelajaran dan kerjakan tugas dengan baik.</p>
                     <?php if ($kelas_info): ?>
                         <div class="kelas-badge">
